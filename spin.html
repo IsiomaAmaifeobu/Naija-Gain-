@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Naija Gain — Spin</title>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://telegram.org/js/telegram-web-app.js" defer></script>
 <style>
   :root{
     --bg-deep: #0B3D2E;
@@ -233,6 +233,7 @@
   </div>
 
 <script>
+window.addEventListener('DOMContentLoaded', function(){
   // ---------- Telegram WebApp setup ----------
   const tg = window.Telegram ? window.Telegram.WebApp : null;
   if (tg) { tg.ready(); tg.expand(); }
@@ -241,24 +242,28 @@
 
   // Fallback in-memory store if opened outside Telegram (e.g. testing in a normal browser)
   const memoryStore = {};
+
+  // Wraps a promise so it can never hang forever — resolves with fallback after 3s if no response
+  function withTimeout(promise, fallbackValue, ms = 3000){
+    return Promise.race([
+      promise,
+      new Promise((resolve) => setTimeout(() => resolve(fallbackValue), ms))
+    ]);
+  }
+
   function storageGet(key){
-    return new Promise((resolve) => {
-      if (hasCloudStorage) {
-        tg.CloudStorage.getItem(key, (err, value) => resolve(err ? null : value));
-      } else {
-        resolve(memoryStore[key] || null);
-      }
+    if (!hasCloudStorage) return Promise.resolve(memoryStore[key] || null);
+    const p = new Promise((resolve) => {
+      tg.CloudStorage.getItem(key, (err, value) => resolve(err ? null : value));
     });
+    return withTimeout(p, null);
   }
   function storageSet(key, value){
-    return new Promise((resolve) => {
-      if (hasCloudStorage) {
-        tg.CloudStorage.setItem(key, value, () => resolve());
-      } else {
-        memoryStore[key] = value;
-        resolve();
-      }
+    if (!hasCloudStorage) { memoryStore[key] = value; return Promise.resolve(); }
+    const p = new Promise((resolve) => {
+      tg.CloudStorage.setItem(key, value, () => resolve());
     });
+    return withTimeout(p, undefined);
   }
 
   function todayStr(){
@@ -443,6 +448,7 @@
   spinBtn.addEventListener('click', spin);
 
   loadProgress();
+});
 </script>
 
 </body>
