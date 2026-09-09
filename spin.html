@@ -266,6 +266,7 @@
     return guestId;
   }
   const playerId = getPlayerId();
+  alert("DEBUG: playerId = " + playerId);
   const playerRef = ref(db, 'players/' + playerId);
 
   // Never let a slow/broken connection hang the page — fall back after 4s
@@ -282,6 +283,7 @@
       if (snapshot && snapshot.exists && snapshot.exists()) return snapshot.val();
       return null;
     } catch(e) {
+      alert("LOAD ERROR: " + e.message);
       return null;
     }
   }
@@ -289,7 +291,9 @@
   async function dbSave(data){
     try {
       await withTimeout(set(playerRef, data), undefined, 4000);
-    } catch(e) { /* save failed silently — next spin will try again */ }
+    } catch(e) {
+      alert("SAVE ERROR: " + e.message);
+    }
   }
 
   function todayStr(){
@@ -478,5 +482,4 @@
 </script>
 
 </body>
-  </html>
-  
+</html>
