@@ -49,16 +49,29 @@
     font-size: 60px;
     background: radial-gradient(circle at 35% 30%, #FFE9A8, var(--gold) 60%, var(--gold-dark));
     box-shadow: 0 12px 28px rgba(0,0,0,0.4), inset 0 -6px 10px rgba(0,0,0,0.15);
-    margin-bottom: 26px;
+    margin-bottom: 8px;
     color: #3a2a06;
     font-weight: 800;
-    transition: transform 0.08s ease;
+    border: 4px solid #fff6d6;
+    transition: transform 0.08s ease, background 0.05s ease;
+  }
+  .coin-wrap.side-tails{
+    background: radial-gradient(circle at 35% 30%, #ffffff, #d7dde2 60%, #9aa4ad);
+    color: #2b3238;
+    border-color: #eef1f3;
   }
   .coin-wrap.flipping{ animation: flip 0.3s infinite; }
   @keyframes flip{
     0%{ transform: scaleX(1); }
     50%{ transform: scaleX(0.15); }
     100%{ transform: scaleX(1); }
+  }
+  .coin-caption{
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--muted);
+    margin-bottom: 22px;
+    letter-spacing: 0.04em;
   }
 
   .pick-label{ font-size: 13px; color: var(--muted); margin-bottom: 10px; }
@@ -154,7 +167,8 @@
   <div class="balance"><span class="coin-dot"></span><span id="balanceText">Loading...</span></div>
   <div class="sync-note" id="syncNote">Loading your saved progress...</div>
 
-  <div class="coin-wrap" id="coinFace">🟡</div>
+  <div class="coin-wrap" id="coinFace">H</div>
+  <div class="coin-caption" id="coinCaption">HEADS</div>
 
   <div class="pick-label">Heads or Tails?</div>
   <div class="side-picker" id="sidePicker">
@@ -249,6 +263,7 @@
   const balanceText = document.getElementById('balanceText');
   const syncNote = document.getElementById('syncNote');
   const coinFace = document.getElementById('coinFace');
+  const coinCaption = document.getElementById('coinCaption');
   const sidePicker = document.getElementById('sidePicker');
   const stakePicker = document.getElementById('stakePicker');
   const customStake = document.getElementById('customStake');
@@ -259,6 +274,12 @@
   const resultTitle = document.getElementById('resultTitle');
   const resultSub = document.getElementById('resultSub');
   const resultClose = document.getElementById('resultClose');
+
+  function setCoinFace(side){
+    coinFace.textContent = side === "heads" ? "H" : "T";
+    coinCaption.textContent = side === "heads" ? "HEADS" : "TAILS";
+    coinFace.classList.toggle('side-tails', side === "tails");
+  }
 
   function updateHUD(){
     balanceText.textContent = coinBalance + " coins";
@@ -342,12 +363,13 @@
     let ticks = 0;
     const maxTicks = 12;
     const interval = setInterval(() => {
-      coinFace.textContent = Math.random() < 0.5 ? "🟡" : "⚪";
+      coinFace.textContent = Math.random() < 0.5 ? "H" : "T";
+      coinFace.classList.toggle('side-tails', coinFace.textContent === "T");
       ticks++;
       if (ticks >= maxTicks) {
         clearInterval(interval);
         const outcome = Math.random() < 0.5 ? "heads" : "tails";
-        coinFace.textContent = outcome === "heads" ? "🟡" : "⚪";
+        setCoinFace(outcome);
         coinFace.classList.remove('flipping');
         onFlipComplete(outcome);
       }
@@ -389,5 +411,4 @@
 </script>
 
 </body>
-  </html>
-        
+</html>
