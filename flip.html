@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Naija Gain — Coin Flip</title>
+<script src="https://telegram.org/js/telegram-web-app.js" defer></script>
+<style>
+  :root{
+    --bg-deep: #0B3D2E;
+    --bg-deep2: #0F4D3A;
+    --gold: #FFC93C;
+    --gold-dark: #D9A02B;
+    --cream: #FBF3DC;
+    --red: #E4572E;
+    --muted: #B9D9C9;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; min-height:100vh;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background: radial-gradient(circle at 50% 0%, var(--bg-deep2), var(--bg-deep) 70%);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--cream);
+    padding: 24px 16px 40px;
+    overflow-x:hidden;
+  }
+  .brand{ font-size: 28px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 2px; text-align:center; }
+  .brand span{ color: var(--gold); }
+  .tagline{ font-size: 13px; color: var(--muted); margin-bottom: 22px; text-align:center; }
+  .balance{
+    display:flex; align-items:center; gap:8px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,201,60,0.35);
+    padding: 8px 18px; border-radius: 999px;
+    margin-bottom: 8px; font-weight:700; font-size: 15px;
+  }
+  .coin-dot{
+    width:18px;height:18px;border-radius:50%;
+    background: radial-gradient(circle at 35% 30%, #FFE9A8, var(--gold) 60%, var(--gold-dark));
+    box-shadow: 0 0 8px rgba(255,201,60,0.6);
+  }
+  .sync-note{ font-size: 11px; color: rgba(185,217,201,0.7); margin-bottom: 24px; text-align:center; }
+
+  .coin-wrap{
+    width: 140px; height: 140px;
+    border-radius: 50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size: 60px;
+    background: radial-gradient(circle at 35% 30%, #FFE9A8, var(--gold) 60%, var(--gold-dark));
+    box-shadow: 0 12px 28px rgba(0,0,0,0.4), inset 0 -6px 10px rgba(0,0,0,0.15);
+    margin-bottom: 26px;
+    color: #3a2a06;
+    font-weight: 800;
+    transition: transform 0.08s ease;
+  }
+  .coin-wrap.flipping{ animation: flip 0.3s infinite; }
+  @keyframes flip{
+    0%{ transform: scaleX(1); }
+    50%{ transform: scaleX(0.15); }
+    100%{ transform: scaleX(1); }
+  }
+
+  .pick-label{ font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+  .side-picker{ display:flex; gap:10px; margin-bottom: 22px; }
+  .side-btn{
+    appearance:none; border:none; cursor:pointer;
+    padding: 10px 22px; border-radius: 999px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,201,60,0.3);
+    color: var(--cream); font-weight:800; font-size: 14px;
+  }
+  .side-btn.selected{
+    background: linear-gradient(180deg, #F6D46B, var(--gold-dark));
+    color: #3a2a06; border-color: transparent;
+  }
+
+  .stake-label{ font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+  .stake-picker{ display:flex; gap:8px; margin-bottom: 26px; flex-wrap:wrap; justify-content:center; }
+  .stake-btn{
+    appearance:none; border:none; cursor:pointer;
+    padding: 9px 16px; border-radius: 12px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,201,60,0.3);
+    color: var(--cream); font-weight:700; font-size: 13px;
+  }
+  .stake-btn.selected{
+    background: linear-gradient(180deg, #F6D46B, var(--gold-dark));
+    color: #3a2a06; border-color: transparent;
+  }
+  .stake-btn:disabled{ opacity:0.35; cursor:default; }
+
+  .custom-stake-input{
+    display:block;
+    width: 220px;
+    margin: 0 auto 26px;
+    text-align:center;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,201,60,0.3);
+    color: var(--cream);
+    font-size: 14px;
+    font-weight:700;
+  }
+  .custom-stake-input::placeholder{ color: rgba(185,217,201,0.6); font-weight:400; }
+  .custom-stake-input:focus{ outline:none; border-color: var(--gold); }
+
+  .flip-btn{
+    appearance:none; border:none; cursor:pointer;
+    background: linear-gradient(180deg, #F6D46B, var(--gold-dark));
+    color: #3a2a06; font-weight:800; font-size:17px; letter-spacing:0.02em;
+    padding: 14px 46px; border-radius: 999px;
+    box-shadow: 0 4px 0 #8f6a13, 0 10px 20px rgba(0,0,0,0.35);
+    transition: transform 0.08s ease;
+  }
+  .flip-btn:active{ transform: translateY(3px); box-shadow: 0 1px 0 #8f6a13, 0 4px 10px rgba(0,0,0,0.35); }
+  .flip-btn:disabled{ opacity:0.55; cursor:default; }
+
+  .stake-note{ margin-top: 14px; font-size: 13px; color: var(--muted); text-align:center; }
+  .back-link{ margin-top: 22px; font-size: 13px; color: var(--gold); text-decoration:none; }
+
+  .result{
+    position:fixed; inset:0;
+    background: rgba(6,20,15,0.72);
+    display:flex; align-items:center; justify-content:center;
+    opacity:0; pointer-events:none;
+    transition: opacity 0.25s ease;
+    z-index: 20;
+  }
+  .result.show{ opacity:1; pointer-events:auto; }
+  .result-card{
+    background: linear-gradient(180deg, var(--bg-deep2), var(--bg-deep));
+    border: 2px solid var(--gold); border-radius: 20px;
+    padding: 32px 28px; text-align:center; max-width: 280px;
+    transform: scale(0.85); transition: transform 0.25s ease;
+  }
+  .result.show .result-card{ transform: scale(1); }
+  .result-emoji{ font-size:44px; margin-bottom:6px; }
+  .result-title{ font-size:20px; font-weight:800; color:var(--gold); margin-bottom:4px; }
+  .result-sub{ font-size:13px; color:var(--muted); margin-bottom:20px; }
+  .result-close{
+    appearance:none; border:none; cursor:pointer;
+    background: var(--gold); color:#3a2a06; font-weight:700;
+    padding: 10px 28px; border-radius: 999px; font-size:14px;
+  }
+</style>
+</head>
+<body>
+
+  <div class="brand">Naija <span>Gain</span></div>
+  <div class="tagline">Call it right. Double your stake.</div>
+
+  <div class="balance"><span class="coin-dot"></span><span id="balanceText">Loading...</span></div>
+  <div class="sync-note" id="syncNote">Loading your saved progress...</div>
+
+  <div class="coin-wrap" id="coinFace">🟡</div>
+
+  <div class="pick-label">Heads or Tails?</div>
+  <div class="side-picker" id="sidePicker">
+    <button class="side-btn" data-side="heads">Heads</button>
+    <button class="side-btn" data-side="tails">Tails</button>
+  </div>
+
+  <div class="stake-label">Stake how many coins?</div>
+  <div class="stake-picker" id="stakePicker">
+    <button class="stake-btn" data-stake="5">5</button>
+    <button class="stake-btn" data-stake="10">10</button>
+    <button class="stake-btn" data-stake="25">25</button>
+    <button class="stake-btn" data-stake="50">50</button>
+  </div>
+  <input type="number" id="customStake" class="custom-stake-input" placeholder="Or type a custom amount" min="1" inputmode="numeric">
+
+  <button class="flip-btn" id="flipBtn" disabled>Flip the Coin</button>
+  <div class="stake-note" id="stakeNote">Loading...</div>
+  <a href="index.html" class="back-link">← Back to games</a>
+
+  <div class="result" id="resultOverlay">
+    <div class="result-card">
+      <div class="result-emoji" id="resultEmoji">🎉</div>
+      <div class="result-title" id="resultTitle">You won!</div>
+      <div class="result-sub" id="resultSub"></div>
+      <button class="result-close" id="resultClose">Nice!</button>
+    </div>
+  </div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCmT04ri3vMD0O2rxelhVvF8cn2624OdGY",
+    authDomain: "naija-gain.firebaseapp.com",
+    databaseURL: "https://naija-gain-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "naija-gain",
+    storageBucket: "naija-gain.firebasestorage.app",
+    messagingSenderId: "384942407595",
+    appId: "1:384942407595:web:eaa6efdb65926fd378dcee"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  const tg = window.Telegram ? window.Telegram.WebApp : null;
+  if (tg && tg.ready) { try { tg.ready(); tg.expand(); } catch(e){} }
+
+  function getPlayerId(){
+    if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) {
+      return "tg_" + tg.initDataUnsafe.user.id;
+    }
+    let guestId = localStorage.getItem('guestId');
+    if (!guestId) {
+      guestId = "guest_" + Math.random().toString(36).slice(2, 10);
+      try { localStorage.setItem('guestId', guestId); } catch(e){}
+    }
+    return guestId;
+  }
+  const playerId = getPlayerId();
+  const playerRef = ref(db, 'players/' + playerId);
+
+  function withTimeout(promise, fallbackValue, ms = 4000){
+    return Promise.race([
+      promise,
+      new Promise((resolve) => setTimeout(() => resolve(fallbackValue), ms))
+    ]);
+  }
+
+  async function dbLoad(){
+    try {
+      const snapshot = await withTimeout(get(playerRef), null, 4000);
+      if (snapshot && snapshot.exists && snapshot.exists()) return snapshot.val();
+      return null;
+    } catch(e) { return null; }
+  }
+
+  async function dbSave(patch){
+    try {
+      const current = await dbLoad();
+      const merged = Object.assign({}, current || {}, patch);
+      await withTimeout(set(playerRef, merged), undefined, 4000);
+    } catch(e) { /* save failed silently — next flip will try again */ }
+  }
+
+  let coinBalance = 0;
+  let selectedSide = null;
+  let selectedStake = null;
+  let flipping = false;
+
+  const balanceText = document.getElementById('balanceText');
+  const syncNote = document.getElementById('syncNote');
+  const coinFace = document.getElementById('coinFace');
+  const sidePicker = document.getElementById('sidePicker');
+  const stakePicker = document.getElementById('stakePicker');
+  const customStake = document.getElementById('customStake');
+  const flipBtn = document.getElementById('flipBtn');
+  const stakeNote = document.getElementById('stakeNote');
+  const resultOverlay = document.getElementById('resultOverlay');
+  const resultEmoji = document.getElementById('resultEmoji');
+  const resultTitle = document.getElementById('resultTitle');
+  const resultSub = document.getElementById('resultSub');
+  const resultClose = document.getElementById('resultClose');
+
+  function updateHUD(){
+    balanceText.textContent = coinBalance + " coins";
+
+    document.querySelectorAll('.stake-btn').forEach(btn => {
+      const amt = parseInt(btn.dataset.stake, 10);
+      btn.disabled = amt > coinBalance;
+      if (amt > coinBalance && btn.classList.contains('selected')) {
+        btn.classList.remove('selected');
+        selectedStake = null;
+      }
+    });
+    customStake.max = coinBalance;
+
+    if (coinBalance < 1) {
+      stakeNote.textContent = "You need coins to play — go earn some on Spin or Dice.";
+    } else {
+      const rawCustom = parseInt(customStake.value, 10);
+      if (customStake.value && !isNaN(rawCustom) && rawCustom > coinBalance) {
+        stakeNote.textContent = "You only have " + coinBalance + " coins — lower your stake.";
+      } else {
+        stakeNote.textContent = "Winning doubles your stake. Losing forfeits it.";
+      }
+    }
+
+    flipBtn.disabled = flipping || selectedSide === null || selectedStake === null || selectedStake > coinBalance;
+  }
+
+  async function loadProgress(){
+    try {
+      const data = await dbLoad();
+      coinBalance = (data && typeof data.coinBalance === 'number') ? data.coinBalance : 0;
+      syncNote.textContent = "Progress saved to your account — same on every device";
+    } catch(e) {
+      coinBalance = 0;
+      syncNote.textContent = "Couldn't load saved progress — starting fresh";
+    }
+    updateHUD();
+  }
+
+  sidePicker.addEventListener('click', (e) => {
+    const btn = e.target.closest('.side-btn');
+    if (!btn || flipping) return;
+    selectedSide = btn.dataset.side;
+    document.querySelectorAll('.side-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    updateHUD();
+  });
+
+  stakePicker.addEventListener('click', (e) => {
+    const btn = e.target.closest('.stake-btn');
+    if (!btn || flipping || btn.disabled) return;
+    selectedStake = parseInt(btn.dataset.stake, 10);
+    customStake.value = "";
+    document.querySelectorAll('.stake-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    updateHUD();
+  });
+
+  customStake.addEventListener('input', () => {
+    if (flipping) return;
+    document.querySelectorAll('.stake-btn').forEach(b => b.classList.remove('selected'));
+
+    const raw = parseInt(customStake.value, 10);
+    if (!customStake.value || isNaN(raw) || raw < 1) {
+      selectedStake = null;
+    } else if (raw > coinBalance) {
+      selectedStake = null; // too high — leave button disabled until they lower it
+    } else {
+      selectedStake = raw;
+    }
+    updateHUD();
+  });
+
+  function flip(){
+    if (flipping || selectedSide === null || selectedStake === null || selectedStake > coinBalance) return;
+    flipping = true;
+    flipBtn.disabled = true;
+    coinFace.classList.add('flipping');
+
+    let ticks = 0;
+    const maxTicks = 12;
+    const interval = setInterval(() => {
+      coinFace.textContent = Math.random() < 0.5 ? "🟡" : "⚪";
+      ticks++;
+      if (ticks >= maxTicks) {
+        clearInterval(interval);
+        const outcome = Math.random() < 0.5 ? "heads" : "tails";
+        coinFace.textContent = outcome === "heads" ? "🟡" : "⚪";
+        coinFace.classList.remove('flipping');
+        onFlipComplete(outcome);
+      }
+    }, 90);
+  }
+
+  async function onFlipComplete(outcome){
+    const won = outcome === selectedSide;
+
+    if (won) {
+      coinBalance += selectedStake;
+      resultEmoji.textContent = "🏆";
+      resultTitle.textContent = "You won " + selectedStake + " coins!";
+      resultSub.textContent = "It landed on " + outcome + " — balance: " + coinBalance + " coins";
+    } else {
+      coinBalance -= selectedStake;
+      resultEmoji.textContent = "💔";
+      resultTitle.textContent = "Lost " + selectedStake + " coins";
+      resultSub.textContent = "It landed on " + outcome + " — balance: " + coinBalance + " coins";
+    }
+
+    await dbSave({ coinBalance: coinBalance });
+    flipping = false;
+    selectedStake = null;
+    customStake.value = "";
+    document.querySelectorAll('.stake-btn').forEach(b => b.classList.remove('selected'));
+    updateHUD();
+    resultOverlay.classList.add('show');
+  }
+
+  resultClose.addEventListener('click', () => {
+    resultOverlay.classList.remove('show');
+    updateHUD();
+  });
+
+  flipBtn.addEventListener('click', flip);
+
+  loadProgress();
+</script>
+
+</body>
+  </html>
+        
