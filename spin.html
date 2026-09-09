@@ -254,14 +254,22 @@ window.addEventListener('DOMContentLoaded', function(){
   function storageGet(key){
     if (!hasCloudStorage) return Promise.resolve(memoryStore[key] || null);
     const p = new Promise((resolve) => {
-      tg.CloudStorage.getItem(key, (err, value) => resolve(err ? null : value));
+      try {
+        tg.CloudStorage.getItem(key, (err, value) => resolve(err ? null : value));
+      } catch (e) {
+        resolve(null);
+      }
     });
     return withTimeout(p, null);
   }
   function storageSet(key, value){
     if (!hasCloudStorage) { memoryStore[key] = value; return Promise.resolve(); }
     const p = new Promise((resolve) => {
-      tg.CloudStorage.setItem(key, value, () => resolve());
+      try {
+        tg.CloudStorage.setItem(key, value, () => resolve());
+      } catch (e) {
+        resolve();
+      }
     });
     return withTimeout(p, undefined);
   }
@@ -353,24 +361,32 @@ window.addEventListener('DOMContentLoaded', function(){
   }
 
   async function loadProgress(){
-    const savedCoins = await storageGet('coinBalance');
-    const savedDate = await storageGet('lastSpinDate');
-    const savedSpins = await storageGet('freeSpinsLeft');
+    try {
+      const savedCoins = await storageGet('coinBalance');
+      const savedDate = await storageGet('lastSpinDate');
+      const savedSpins = await storageGet('freeSpinsLeft');
 
-    coinBalance = savedCoins ? parseInt(savedCoins, 10) : 0;
+      coinBalance = savedCoins ? parseInt(savedCoins, 10) : 0;
 
-    if (savedDate === todayStr() && savedSpins !== null) {
-      freeSpinsLeft = parseInt(savedSpins, 10);
-    } else {
-      freeSpinsLeft = 3; // new day, reset spins
-      await storageSet('lastSpinDate', todayStr());
-      await storageSet('freeSpinsLeft', "3");
+      if (savedDate === todayStr() && savedSpins !== null) {
+        freeSpinsLeft = parseInt(savedSpins, 10);
+      } else {
+        freeSpinsLeft = 3; // new day, reset spins
+        await storageSet('lastSpinDate', todayStr());
+        await storageSet('freeSpinsLeft', "3");
+      }
+
+      syncNote.textContent = hasCloudStorage
+        ? "Progress saved to your Telegram account"
+        : "Preview mode — progress won't be saved (open inside Telegram to save)";
+    } catch (e) {
+      // If anything unexpected goes wrong, start fresh rather than hang forever
+      coinBalance = 0;
+      freeSpinsLeft = 3;
+      syncNote.textContent = "Couldn't load saved progress — starting fresh";
+    } finally {
+      updateHUD();
     }
-
-    syncNote.textContent = hasCloudStorage
-      ? "Progress saved to your Telegram account"
-      : "Preview mode — progress won't be saved (open inside Telegram to save)";
-    updateHUD();
   }
 
   async function saveProgress(){
@@ -452,4 +468,5 @@ window.addEventListener('DOMContentLoaded', function(){
 </script>
 
 </body>
-</html>
+  </html>
+  
