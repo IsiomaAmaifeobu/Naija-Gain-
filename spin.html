@@ -208,6 +208,7 @@
 
   <div class="balance"><span class="coin-dot"></span><span id="balanceText">Loading...</span></div>
   <div class="sync-note" id="syncNote">Loading your saved progress...</div>
+  <div id="debugBox" style="background:#111;color:#0f0;font-size:11px;padding:8px;margin:8px auto;max-width:340px;word-break:break-all;border-radius:6px;"></div>
 
   <div class="wheel-wrap">
     <div class="pointer"></div>
@@ -249,6 +250,11 @@
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
 
+  function debugLog(msg){
+    const box = document.getElementById('debugBox');
+    if (box) box.textContent += msg + "\n";
+  }
+
   // ---------- Storage: Firebase Realtime Database, keyed by player ----------
   const tg = window.Telegram ? window.Telegram.WebApp : null;
   if (tg && tg.ready) { try { tg.ready(); tg.expand(); } catch(e){} }
@@ -266,7 +272,7 @@
     return guestId;
   }
   const playerId = getPlayerId();
-  alert("DEBUG: playerId = " + playerId);
+  debugLog("playerId = " + playerId);
   const playerRef = ref(db, 'players/' + playerId);
 
   // Never let a slow/broken connection hang the page — fall back after 4s
@@ -280,10 +286,11 @@
   async function dbLoad(){
     try {
       const snapshot = await withTimeout(get(playerRef), null, 4000);
+      debugLog("dbLoad ran, exists=" + (snapshot && snapshot.exists ? snapshot.exists() : "null"));
       if (snapshot && snapshot.exists && snapshot.exists()) return snapshot.val();
       return null;
     } catch(e) {
-      alert("LOAD ERROR: " + e.message);
+      debugLog("LOAD ERROR: " + e.message);
       return null;
     }
   }
@@ -291,8 +298,9 @@
   async function dbSave(data){
     try {
       await withTimeout(set(playerRef, data), undefined, 4000);
+      debugLog("dbSave completed");
     } catch(e) {
-      alert("SAVE ERROR: " + e.message);
+      debugLog("SAVE ERROR: " + e.message);
     }
   }
 
@@ -482,4 +490,5 @@
 </script>
 
 </body>
-</html>
+  </html>
+  
