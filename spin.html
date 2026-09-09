@@ -232,16 +232,64 @@
     </div>
   </div>
 
-<script>
-  // ---------- Storage: plain localStorage, no external dependency, no hanging ----------
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCmT04ri3vMD0O2rxelhVvF8cn2624OdGY",
+    authDomain: "naija-gain.firebaseapp.com",
+    databaseURL: "https://naija-gain-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "naija-gain",
+    storageBucket: "naija-gain.firebasestorage.app",
+    messagingSenderId: "384942407595",
+    appId: "1:384942407595:web:eaa6efdb65926fd378dcee"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  // ---------- Storage: Firebase Realtime Database, keyed by player ----------
   const tg = window.Telegram ? window.Telegram.WebApp : null;
   if (tg && tg.ready) { try { tg.ready(); tg.expand(); } catch(e){} }
 
-  function storageGet(key){
-    try { return localStorage.getItem(key); } catch(e){ return null; }
+  function getPlayerId(){
+    if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) {
+      return "tg_" + tg.initDataUnsafe.user.id;
+    }
+    // Fallback for testing outside Telegram (plain browser) — not linked to any Telegram account
+    let guestId = localStorage.getItem('guestId');
+    if (!guestId) {
+      guestId = "guest_" + Math.random().toString(36).slice(2, 10);
+      try { localStorage.setItem('guestId', guestId); } catch(e){}
+    }
+    return guestId;
   }
-  function storageSet(key, value){
-    try { localStorage.setItem(key, value); } catch(e){ /* ignore */ }
+  const playerId = getPlayerId();
+  const playerRef = ref(db, 'players/' + playerId);
+
+  // Never let a slow/broken connection hang the page — fall back after 4s
+  function withTimeout(promise, fallbackValue, ms = 4000){
+    return Promise.race([
+      promise,
+      new Promise((resolve) => setTimeout(() => resolve(fallbackValue), ms))
+    ]);
+  }
+
+  async function dbLoad(){
+    try {
+      const snapshot = await withTimeout(get(playerRef), null, 4000);
+      if (snapshot && snapshot.exists && snapshot.exists()) return snapshot.val();
+      return null;
+    } catch(e) {
+      return null;
+    }
+  }
+
+  async function dbSave(data){
+    try {
+      await withTimeout(set(playerRef, data), undefined, 4000);
+    } catch(e) { /* save failed silently — next spin will try again */ }
   }
 
   function todayStr(){
@@ -330,23 +378,18 @@
     spinBtn.disabled = freeSpinsLeft <= 0 || spinning;
   }
 
-  function loadProgress(){
+  async function loadProgress(){
     try {
-      const savedCoins = storageGet('coinBalance');
-      const savedDate = storageGet('lastSpinDate');
-      const savedSpins = storageGet('freeSpinsLeft');
+      const data = await dbLoad();
+      coinBalance = (data && typeof data.coinBalance === 'number') ? data.coinBalance : 0;
 
-      coinBalance = savedCoins ? parseInt(savedCoins, 10) : 0;
-
-      if (savedDate === todayStr() && savedSpins !== null) {
-        freeSpinsLeft = parseInt(savedSpins, 10);
+      if (data && data.lastSpinDate === todayStr() && typeof data.freeSpinsLeft === 'number') {
+        freeSpinsLeft = data.freeSpinsLeft;
       } else {
         freeSpinsLeft = 3; // new day, reset spins
-        storageSet('lastSpinDate', todayStr());
-        storageSet('freeSpinsLeft', "3");
       }
 
-      syncNote.textContent = "Progress saved on this device";
+      syncNote.textContent = "Progress saved to your account — same on every device";
     } catch (e) {
       coinBalance = 0;
       freeSpinsLeft = 3;
@@ -355,10 +398,12 @@
     updateHUD();
   }
 
-  function saveProgress(){
-    storageSet('coinBalance', String(coinBalance));
-    storageSet('freeSpinsLeft', String(freeSpinsLeft));
-    storageSet('lastSpinDate', todayStr());
+  async function saveProgress(){
+    await dbSave({
+      coinBalance: coinBalance,
+      freeSpinsLeft: freeSpinsLeft,
+      lastSpinDate: todayStr()
+    });
   }
 
   function easeOutCubic(t){ return 1 - Math.pow(1-t, 3); }
@@ -396,7 +441,7 @@
     requestAnimationFrame(frame);
   }
 
-  function onSpinComplete(index){
+  async function onSpinComplete(index){
     const seg = segments[index];
     freeSpinsLeft -= 1;
 
@@ -416,7 +461,7 @@
       resultSub.textContent = "Spin again — it's on the house.";
     }
 
-    saveProgress();
+    await saveProgress();
     updateHUD();
     spinning = false;
     resultOverlay.classList.add('show');
