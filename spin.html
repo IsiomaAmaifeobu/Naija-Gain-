@@ -208,7 +208,6 @@
 
   <div class="balance"><span class="coin-dot"></span><span id="balanceText">Loading...</span></div>
   <div class="sync-note" id="syncNote">Loading your saved progress...</div>
-  <div id="debugBox" style="background:#111;color:#0f0;font-size:11px;padding:8px;margin:8px auto;max-width:340px;word-break:break-all;border-radius:6px;"></div>
 
   <div class="wheel-wrap">
     <div class="pointer"></div>
@@ -251,8 +250,7 @@
   const db = getDatabase(app);
 
   function debugLog(msg){
-    const box = document.getElementById('debugBox');
-    if (box) box.textContent += msg + "\n";
+    // debugging done — kept as a no-op in case it's needed again later
   }
 
   // ---------- Storage: Firebase Realtime Database, keyed by player ----------
@@ -490,5 +488,5 @@
 </script>
 
 </body>
-  </html>
+        </html>
   
