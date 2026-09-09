@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Naija Gain — Spin</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
   :root{
     --bg-deep: #0B3D2E;
@@ -59,6 +60,13 @@
     width:18px;height:18px;border-radius:50%;
     background: radial-gradient(circle at 35% 30%, #FFE9A8, var(--gold) 60%, var(--gold-dark));
     box-shadow: 0 0 8px rgba(255,201,60,0.6);
+  }
+  .sync-note{
+    font-size: 11px;
+    color: rgba(185,217,201,0.7);
+    margin-top: -18px;
+    margin-bottom: 20px;
+    text-align:center;
   }
   .wheel-wrap{
     position: relative;
@@ -146,6 +154,12 @@
     font-size: 13px;
     color:#B9D9C9;
   }
+  .back-link{
+    margin-top: 22px;
+    font-size: 13px;
+    color: var(--gold);
+    text-decoration:none;
+  }
   .result{
     position:fixed;
     inset:0;
@@ -192,7 +206,8 @@
   <div class="brand">Naija <span>Gain</span></div>
   <div class="tagline">Spin daily. Stack your coins.</div>
 
-  <div class="balance"><span class="coin-dot"></span><span id="balanceText">0 coins</span></div>
+  <div class="balance"><span class="coin-dot"></span><span id="balanceText">Loading...</span></div>
+  <div class="sync-note" id="syncNote">Loading your saved progress...</div>
 
   <div class="wheel-wrap">
     <div class="pointer"></div>
@@ -204,8 +219,9 @@
     <div class="hub">SPIN</div>
   </div>
 
-  <button class="spin-btn" id="spinBtn">Spin the Wheel</button>
-  <div class="spins-left" id="spinsLeft">3 free spins left today</div>
+  <button class="spin-btn" id="spinBtn" disabled>Spin the Wheel</button>
+  <div class="spins-left" id="spinsLeft">Loading...</div>
+  <a href="index.html" class="back-link">← Back to games</a>
 
   <div class="result" id="resultOverlay">
     <div class="result-card">
@@ -217,6 +233,40 @@
   </div>
 
 <script>
+  // ---------- Telegram WebApp setup ----------
+  const tg = window.Telegram ? window.Telegram.WebApp : null;
+  if (tg) { tg.ready(); tg.expand(); }
+
+  const hasCloudStorage = !!(tg && tg.CloudStorage);
+
+  // Fallback in-memory store if opened outside Telegram (e.g. testing in a normal browser)
+  const memoryStore = {};
+  function storageGet(key){
+    return new Promise((resolve) => {
+      if (hasCloudStorage) {
+        tg.CloudStorage.getItem(key, (err, value) => resolve(err ? null : value));
+      } else {
+        resolve(memoryStore[key] || null);
+      }
+    });
+  }
+  function storageSet(key, value){
+    return new Promise((resolve) => {
+      if (hasCloudStorage) {
+        tg.CloudStorage.setItem(key, value, () => resolve());
+      } else {
+        memoryStore[key] = value;
+        resolve();
+      }
+    });
+  }
+
+  function todayStr(){
+    const d = new Date();
+    return d.getFullYear() + "-" + (d.getMonth()+1) + "-" + d.getDate();
+  }
+
+  // ---------- Wheel setup ----------
   const segments = [
     { label: "5",   coins: 5,   weight: 26, color: "#134E36" },
     { label: "10",  coins: 10,  weight: 22, color: "#0F6B45" },
@@ -240,11 +290,9 @@
     ctx.save();
     ctx.translate(center, center);
     ctx.rotate(rotation);
-
     segments.forEach((seg, i) => {
       const start = i * segAngle;
       const end = start + segAngle;
-
       ctx.beginPath();
       ctx.moveTo(0,0);
       ctx.arc(0,0,radius, start, end);
@@ -254,7 +302,6 @@
       ctx.strokeStyle = "rgba(255,201,60,0.35)";
       ctx.lineWidth = 2;
       ctx.stroke();
-
       ctx.save();
       ctx.rotate(start + segAngle/2);
       ctx.textAlign = "right";
@@ -263,10 +310,8 @@
       ctx.fillText(seg.label, radius - 24, 10);
       ctx.restore();
     });
-
     ctx.restore();
   }
-
   drawWheel();
 
   function weightedRandomIndex(){
@@ -285,6 +330,7 @@
   let coinBalance = 0;
 
   const balanceText = document.getElementById('balanceText');
+  const syncNote = document.getElementById('syncNote');
   const spinBtn = document.getElementById('spinBtn');
   const spinsLeftEl = document.getElementById('spinsLeft');
   const resultOverlay = document.getElementById('resultOverlay');
@@ -297,10 +343,36 @@
     balanceText.textContent = coinBalance + " coins";
     spinsLeftEl.textContent = freeSpinsLeft > 0
       ? freeSpinsLeft + " free spin" + (freeSpinsLeft===1?"":"s") + " left today"
-      : "No free spins left — watch an ad for a bonus spin";
+      : "No free spins left — come back tomorrow";
     spinBtn.disabled = freeSpinsLeft <= 0 || spinning;
   }
-  updateHUD();
+
+  async function loadProgress(){
+    const savedCoins = await storageGet('coinBalance');
+    const savedDate = await storageGet('lastSpinDate');
+    const savedSpins = await storageGet('freeSpinsLeft');
+
+    coinBalance = savedCoins ? parseInt(savedCoins, 10) : 0;
+
+    if (savedDate === todayStr() && savedSpins !== null) {
+      freeSpinsLeft = parseInt(savedSpins, 10);
+    } else {
+      freeSpinsLeft = 3; // new day, reset spins
+      await storageSet('lastSpinDate', todayStr());
+      await storageSet('freeSpinsLeft', "3");
+    }
+
+    syncNote.textContent = hasCloudStorage
+      ? "Progress saved to your Telegram account"
+      : "Preview mode — progress won't be saved (open inside Telegram to save)";
+    updateHUD();
+  }
+
+  async function saveProgress(){
+    await storageSet('coinBalance', String(coinBalance));
+    await storageSet('freeSpinsLeft', String(freeSpinsLeft));
+    await storageSet('lastSpinDate', todayStr());
+  }
 
   function easeOutCubic(t){ return 1 - Math.pow(1-t, 3); }
 
@@ -337,7 +409,7 @@
     requestAnimationFrame(frame);
   }
 
-  function onSpinComplete(index){
+  async function onSpinComplete(index){
     const seg = segments[index];
     freeSpinsLeft -= 1;
 
@@ -357,6 +429,7 @@
       resultSub.textContent = "Spin again — it's on the house.";
     }
 
+    await saveProgress();
     updateHUD();
     spinning = false;
     resultOverlay.classList.add('show');
@@ -368,6 +441,8 @@
   });
 
   spinBtn.addEventListener('click', spin);
+
+  loadProgress();
 </script>
 
 </body>
