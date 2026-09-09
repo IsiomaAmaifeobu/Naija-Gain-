@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Naija Gain — Spin</title>
+<style>
+  :root{
+    --bg-deep: #0B3D2E;
+    --bg-deep2: #0F4D3A;
+    --gold: #FFC93C;
+    --gold-dark: #D9A02B;
+    --cream: #FBF3DC;
+    --red: #E4572E;
+    --wheel-dark: #08291F;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    background:
+      radial-gradient(circle at 50% 0%, var(--bg-deep2), var(--bg-deep) 70%);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--cream);
+    padding: 24px 16px 40px;
+    overflow-x:hidden;
+  }
+  .brand{
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 2px;
+    text-align:center;
+  }
+  .brand span{ color: var(--gold); }
+  .tagline{
+    font-size: 13px;
+    color: #B9D9C9;
+    margin-bottom: 22px;
+    text-align:center;
+  }
+  .balance{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,201,60,0.35);
+    padding: 8px 18px;
+    border-radius: 999px;
+    margin-bottom: 26px;
+    font-weight:700;
+    font-size: 15px;
+  }
+  .coin-dot{
+    width:18px;height:18px;border-radius:50%;
+    background: radial-gradient(circle at 35% 30%, #FFE9A8, var(--gold) 60%, var(--gold-dark));
+    box-shadow: 0 0 8px rgba(255,201,60,0.6);
+  }
+  .wheel-wrap{
+    position: relative;
+    width: min(320px, 82vw);
+    height: min(320px, 82vw);
+    margin-bottom: 28px;
+  }
+  .pointer{
+    position:absolute;
+    top:-14px;
+    left:50%;
+    transform: translateX(-50%);
+    width:0;height:0;
+    border-left:16px solid transparent;
+    border-right:16px solid transparent;
+    border-top:26px solid var(--gold);
+    filter: drop-shadow(0 2px 3px rgba(0,0,0,0.4));
+    z-index: 5;
+  }
+  .rim{
+    position:absolute;
+    inset:0;
+    border-radius:50%;
+    background: conic-gradient(from 0deg, var(--gold), #fff6d6, var(--gold), var(--gold-dark), var(--gold));
+    padding: 10px;
+    box-shadow:
+      0 0 0 2px rgba(0,0,0,0.25),
+      0 12px 30px rgba(0,0,0,0.45);
+  }
+  .rim-inner{
+    width:100%;
+    height:100%;
+    border-radius:50%;
+    background: var(--wheel-dark);
+    overflow:hidden;
+    position:relative;
+  }
+  canvas{
+    display:block;
+    width:100%;
+    height:100%;
+    transform-origin: 50% 50%;
+  }
+  .hub{
+    position:absolute;
+    top:50%;left:50%;
+    width:52px;height:52px;
+    transform: translate(-50%,-50%);
+    background: radial-gradient(circle at 35% 30%, #FFE9A8, var(--gold) 55%, var(--gold-dark));
+    border-radius:50%;
+    border: 3px solid #fff6d6;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.5);
+    z-index:4;
+    display:flex;align-items:center;justify-content:center;
+    font-size:11px;
+    font-weight:800;
+    color:#3a2a06;
+  }
+  .spin-btn{
+    appearance:none;
+    border:none;
+    cursor:pointer;
+    background: linear-gradient(180deg, #F6D46B, var(--gold-dark));
+    color: #3a2a06;
+    font-weight:800;
+    font-size:17px;
+    letter-spacing:0.02em;
+    padding: 14px 46px;
+    border-radius: 999px;
+    box-shadow:
+      0 4px 0 #8f6a13,
+      0 10px 20px rgba(0,0,0,0.35);
+    transition: transform 0.08s ease;
+  }
+  .spin-btn:active{
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 #8f6a13, 0 4px 10px rgba(0,0,0,0.35);
+  }
+  .spin-btn:disabled{
+    opacity:0.55;
+    cursor:default;
+  }
+  .spins-left{
+    margin-top: 14px;
+    font-size: 13px;
+    color:#B9D9C9;
+  }
+  .result{
+    position:fixed;
+    inset:0;
+    background: rgba(6,20,15,0.72);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    opacity:0;
+    pointer-events:none;
+    transition: opacity 0.25s ease;
+    z-index: 20;
+  }
+  .result.show{
+    opacity:1;
+    pointer-events:auto;
+  }
+  .result-card{
+    background: linear-gradient(180deg, var(--bg-deep2), var(--bg-deep));
+    border: 2px solid var(--gold);
+    border-radius: 20px;
+    padding: 32px 28px;
+    text-align:center;
+    max-width: 280px;
+    transform: scale(0.85);
+    transition: transform 0.25s ease;
+  }
+  .result.show .result-card{ transform: scale(1); }
+  .result-emoji{ font-size:44px; margin-bottom:6px; }
+  .result-title{ font-size:20px; font-weight:800; color:var(--gold); margin-bottom:4px; }
+  .result-sub{ font-size:13px; color:#B9D9C9; margin-bottom:20px; }
+  .result-close{
+    appearance:none;border:none;cursor:pointer;
+    background: var(--gold);
+    color:#3a2a06;
+    font-weight:700;
+    padding: 10px 28px;
+    border-radius: 999px;
+    font-size:14px;
+  }
+</style>
+</head>
+<body>
+
+  <div class="brand">Naija <span>Gain</span></div>
+  <div class="tagline">Spin daily. Stack your coins.</div>
+
+  <div class="balance"><span class="coin-dot"></span><span id="balanceText">0 coins</span></div>
+
+  <div class="wheel-wrap">
+    <div class="pointer"></div>
+    <div class="rim">
+      <div class="rim-inner">
+        <canvas id="wheel" width="600" height="600"></canvas>
+      </div>
+    </div>
+    <div class="hub">SPIN</div>
+  </div>
+
+  <button class="spin-btn" id="spinBtn">Spin the Wheel</button>
+  <div class="spins-left" id="spinsLeft">3 free spins left today</div>
+
+  <div class="result" id="resultOverlay">
+    <div class="result-card">
+      <div class="result-emoji" id="resultEmoji">🎉</div>
+      <div class="result-title" id="resultTitle">You won 20 coins!</div>
+      <div class="result-sub" id="resultSub">Come back tomorrow for more spins.</div>
+      <button class="result-close" id="resultClose">Nice!</button>
+    </div>
+  </div>
+
+<script>
+  const segments = [
+    { label: "5",   coins: 5,   weight: 26, color: "#134E36" },
+    { label: "10",  coins: 10,  weight: 22, color: "#0F6B45" },
+    { label: "AGAIN", coins: 0, weight: 16, color: "#8C2F1B", again:true },
+    { label: "20",  coins: 20,  weight: 16, color: "#134E36" },
+    { label: "+1 SPIN", coins: 0, weight: 10, color: "#B5451B", bonusSpin:true },
+    { label: "50",  coins: 50,  weight: 7,  color: "#0F6B45" },
+    { label: "10",  coins: 10,  weight: 2,  color: "#134E36" },
+    { label: "100", coins: 100, weight: 1,  color: "#C9891A" },
+  ];
+
+  const canvas = document.getElementById('wheel');
+  const ctx = canvas.getContext('2d');
+  const size = canvas.width;
+  const center = size/2;
+  const radius = size/2 - 4;
+  const segAngle = (Math.PI*2) / segments.length;
+
+  function drawWheel(rotation=0){
+    ctx.clearRect(0,0,size,size);
+    ctx.save();
+    ctx.translate(center, center);
+    ctx.rotate(rotation);
+
+    segments.forEach((seg, i) => {
+      const start = i * segAngle;
+      const end = start + segAngle;
+
+      ctx.beginPath();
+      ctx.moveTo(0,0);
+      ctx.arc(0,0,radius, start, end);
+      ctx.closePath();
+      ctx.fillStyle = seg.color;
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255,201,60,0.35)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.save();
+      ctx.rotate(start + segAngle/2);
+      ctx.textAlign = "right";
+      ctx.fillStyle = "#FBF3DC";
+      ctx.font = seg.label.length > 3 ? "bold 26px sans-serif" : "bold 34px sans-serif";
+      ctx.fillText(seg.label, radius - 24, 10);
+      ctx.restore();
+    });
+
+    ctx.restore();
+  }
+
+  drawWheel();
+
+  function weightedRandomIndex(){
+    const total = segments.reduce((s,seg)=>s+seg.weight,0);
+    let r = Math.random() * total;
+    for(let i=0;i<segments.length;i++){
+      r -= segments[i].weight;
+      if(r <= 0) return i;
+    }
+    return segments.length-1;
+  }
+
+  let currentRotation = 0;
+  let spinning = false;
+  let freeSpinsLeft = 3;
+  let coinBalance = 0;
+
+  const balanceText = document.getElementById('balanceText');
+  const spinBtn = document.getElementById('spinBtn');
+  const spinsLeftEl = document.getElementById('spinsLeft');
+  const resultOverlay = document.getElementById('resultOverlay');
+  const resultEmoji = document.getElementById('resultEmoji');
+  const resultTitle = document.getElementById('resultTitle');
+  const resultSub = document.getElementById('resultSub');
+  const resultClose = document.getElementById('resultClose');
+
+  function updateHUD(){
+    balanceText.textContent = coinBalance + " coins";
+    spinsLeftEl.textContent = freeSpinsLeft > 0
+      ? freeSpinsLeft + " free spin" + (freeSpinsLeft===1?"":"s") + " left today"
+      : "No free spins left — watch an ad for a bonus spin";
+    spinBtn.disabled = freeSpinsLeft <= 0 || spinning;
+  }
+  updateHUD();
+
+  function easeOutCubic(t){ return 1 - Math.pow(1-t, 3); }
+
+  function spin(){
+    if(spinning || freeSpinsLeft <= 0) return;
+    spinning = true;
+    spinBtn.disabled = true;
+
+    const winIndex = weightedRandomIndex();
+    const targetSegCenter = winIndex * segAngle + segAngle/2;
+    const pointerAngle = -Math.PI/2;
+    const extraSpins = 5 + Math.floor(Math.random()*3);
+    const finalRotation = currentRotation
+      + extraSpins * Math.PI * 2
+      + (pointerAngle - targetSegCenter - currentRotation % (Math.PI*2));
+
+    const duration = 3800;
+    const startRotation = currentRotation;
+    const delta = finalRotation - startRotation;
+    const startTime = performance.now();
+
+    function frame(now){
+      const elapsed = now - startTime;
+      const t = Math.min(elapsed/duration, 1);
+      const eased = easeOutCubic(t);
+      currentRotation = startRotation + delta * eased;
+      drawWheel(currentRotation);
+      if(t < 1){
+        requestAnimationFrame(frame);
+      }else{
+        onSpinComplete(winIndex);
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function onSpinComplete(index){
+    const seg = segments[index];
+    freeSpinsLeft -= 1;
+
+    if(seg.coins > 0){
+      coinBalance += seg.coins;
+      resultEmoji.textContent = seg.coins >= 50 ? "🏆" : "🎉";
+      resultTitle.textContent = "You won " + seg.coins + " coins!";
+      resultSub.textContent = "Balance: " + coinBalance + " coins";
+    } else if(seg.again){
+      resultEmoji.textContent = "🔄";
+      resultTitle.textContent = "So close — try again!";
+      resultSub.textContent = "No coins this time.";
+    } else if(seg.bonusSpin){
+      freeSpinsLeft += 1;
+      resultEmoji.textContent = "➕";
+      resultTitle.textContent = "Bonus spin unlocked!";
+      resultSub.textContent = "Spin again — it's on the house.";
+    }
+
+    updateHUD();
+    spinning = false;
+    resultOverlay.classList.add('show');
+  }
+
+  resultClose.addEventListener('click', () => {
+    resultOverlay.classList.remove('show');
+    updateHUD();
+  });
+
+  spinBtn.addEventListener('click', spin);
+</script>
+
+</body>
+</html>
