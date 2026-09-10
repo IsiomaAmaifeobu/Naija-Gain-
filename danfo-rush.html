@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Naija Gain — Danfo Rush</title>
+<script src="https://telegram.org/js/telegram-web-app.js" defer></script>
+<style>
+  :root{
+    --bg-deep: #0B3D2E;
+    --bg-deep2: #0F4D3A;
+    --gold: #FFC93C;
+    --gold-dark: #D9A02B;
+    --cream: #FBF3DC;
+    --red: #E4572E;
+    --muted: #B9D9C9;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; min-height:100vh;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background: radial-gradient(circle at 50% 0%, var(--bg-deep2), var(--bg-deep) 70%);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--cream);
+    padding: 22px 16px 40px;
+    overflow-x:hidden;
+  }
+  .brand{ font-size: 26px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 2px; text-align:center; }
+  .brand span{ color: var(--gold); }
+  .tagline{ font-size: 13px; color: var(--muted); margin-bottom: 16px; text-align:center; }
+  .balance{
+    display:flex; align-items:center; gap:8px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,201,60,0.35);
+    padding: 8px 18px; border-radius: 999px;
+    margin-bottom: 8px; font-weight:700; font-size: 15px;
+  }
+  .coin-dot{
+    width:18px;height:18px;border-radius:50%;
+    background: radial-gradient(circle at 35% 30%, #FFE9A8, var(--gold) 60%, var(--gold-dark));
+    box-shadow: 0 0 8px rgba(255,201,60,0.6);
+  }
+  .sync-note{ font-size: 11px; color: rgba(185,217,201,0.7); margin-bottom: 18px; text-align:center; }
+
+  .track{
+    position:relative;
+    width: 100%; max-width: 340px;
+    height: 200px;
+    border-radius: 18px;
+    background: linear-gradient(180deg, #2e5c46 0%, #1a4536 55%, #123a2c 100%);
+    border: 1px solid rgba(255,201,60,0.25);
+    overflow:hidden;
+    margin-bottom: 18px;
+    transition: background 0.3s ease;
+  }
+  .track.crashed{ background: linear-gradient(180deg, #5c3a2e 0%, #45241a 55%, #2a0c09 100%); }
+  .road{
+    position:absolute;
+    left:0; right:0; bottom:0;
+    height: 54px;
+    background: #2b2b2b;
+    border-top: 3px solid #444;
+  }
+  .road::before{
+    content:"";
+    position:absolute;
+    top: 50%; left:0; right:0;
+    height: 5px;
+    margin-top: -2.5px;
+    background-image: repeating-linear-gradient(90deg, var(--gold) 0 22px, transparent 22px 44px);
+    background-size: 44px 5px;
+    animation: roadmove 0.5s linear infinite;
+  }
+  .track.crashed .road::before{ animation-play-state: paused; opacity:0.4; }
+  @keyframes roadmove{
+    from{ background-position: 0 0; }
+    to{ background-position: -44px 0; }
+  }
+  .danfo{
+    position:absolute;
+    font-size: 34px;
+    left: 20px; bottom: 44px;
+    transform: translate(0,0) scaleX(-1);
+    transition: transform 0.08s linear;
+  }
+  .multiplier{
+    position:absolute;
+    top: 40%; left:50%;
+    transform: translate(-50%,-50%);
+    font-size: 44px;
+    font-weight: 800;
+    color: var(--gold);
+    text-shadow: 0 2px 10px rgba(0,0,0,0.4);
+  }
+  .multiplier.crashed{ color: #ff8b7a; }
+  .status-line{
+    position:absolute;
+    bottom: 10px; left:0; right:0;
+    text-align:center;
+    font-size: 12px;
+    color: var(--muted);
+    font-weight:600;
+  }
+
+  .stake-label{ font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+  .stake-picker{ display:flex; gap:8px; margin-bottom: 12px; flex-wrap:wrap; justify-content:center; }
+  .stake-btn{
+    appearance:none; border:none; cursor:pointer;
+    padding: 9px 16px; border-radius: 12px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,201,60,0.3);
+    color: var(--cream); font-weight:700; font-size: 13px;
+  }
+  .stake-btn.selected{
+    background: linear-gradient(180deg, #F6D46B, var(--gold-dark));
+    color: #3a2a06; border-color: transparent;
+  }
+  .stake-btn:disabled{ opacity:0.35; cursor:default; }
+  .custom-stake-input{
+    display:block;
+    width: 220px;
+    margin: 0 auto 20px;
+    text-align:center;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,201,60,0.3);
+    color: var(--cream);
+    font-size: 14px;
+    font-weight:700;
+  }
+  .custom-stake-input::placeholder{ color: rgba(185,217,201,0.6); font-weight:400; }
+  .custom-stake-input:focus{ outline:none; border-color: var(--gold); }
+
+  .action-btn{
+    appearance:none; border:none; cursor:pointer;
+    background: linear-gradient(180deg, #F6D46B, var(--gold-dark));
+    color: #3a2a06; font-weight:800; font-size:17px; letter-spacing:0.02em;
+    padding: 14px 46px; border-radius: 999px;
+    box-shadow: 0 4px 0 #8f6a13, 0 10px 20px rgba(0,0,0,0.35);
+    transition: transform 0.08s ease, background 0.15s ease;
+  }
+  .action-btn.cashout{
+    background: linear-gradient(180deg, #ff8b7a, var(--red));
+    box-shadow: 0 4px 0 #a3341a, 0 10px 20px rgba(0,0,0,0.35);
+    color: #2a0c09;
+  }
+  .action-btn:active{ transform: translateY(3px); }
+  .action-btn:disabled{ opacity:0.55; cursor:default; }
+
+  .stake-note{ margin-top: 14px; font-size: 13px; color: var(--muted); text-align:center; }
+  .back-link{ margin-top: 22px; font-size: 13px; color: var(--gold); text-decoration:none; }
+
+  .result{
+    position:fixed; inset:0;
+    background: rgba(6,20,15,0.72);
+    display:flex; align-items:center; justify-content:center;
+    opacity:0; pointer-events:none;
+    transition: opacity 0.25s ease;
+    z-index: 20;
+  }
+  .result.show{ opacity:1; pointer-events:auto; }
+  .result-card{
+    background: linear-gradient(180deg, var(--bg-deep2), var(--bg-deep));
+    border: 2px solid var(--gold); border-radius: 20px;
+    padding: 32px 28px; text-align:center; max-width: 280px;
+    transform: scale(0.85); transition: transform 0.25s ease;
+  }
+  .result.show .result-card{ transform: scale(1); }
+  .result-emoji{ font-size:44px; margin-bottom:6px; }
+  .result-title{ font-size:20px; font-weight:800; color:var(--gold); margin-bottom:4px; }
+  .result-sub{ font-size:13px; color:var(--muted); margin-bottom:20px; }
+  .result-close{
+    appearance:none; border:none; cursor:pointer;
+    background: var(--gold); color:#3a2a06; font-weight:700;
+    padding: 10px 28px; border-radius: 999px; font-size:14px;
+  }
+</style>
+</head>
+<body>
+
+  <div class="brand">Naija <span>Gain</span></div>
+  <div class="tagline">Cash out before the danfo speeds off.</div>
+
+  <div class="balance"><span class="coin-dot"></span><span id="balanceText">Loading...</span></div>
+  <div class="sync-note" id="syncNote">Loading your saved progress...</div>
+
+  <div class="track" id="track">
+    <div class="road"></div>
+    <span class="danfo" id="danfo">🚌</span>
+    <div class="multiplier" id="multiplierText">1.00x</div>
+    <div class="status-line" id="statusLine">Place a stake to start</div>
+  </div>
+
+  <div class="stake-label">Stake how many coins?</div>
+  <div class="stake-picker" id="stakePicker">
+    <button class="stake-btn" data-stake="5">5</button>
+    <button class="stake-btn" data-stake="10">10</button>
+    <button class="stake-btn" data-stake="25">25</button>
+    <button class="stake-btn" data-stake="50">50</button>
+  </div>
+  <input type="number" id="customStake" class="custom-stake-input" placeholder="Or type a custom amount" min="1" inputmode="numeric">
+
+  <button class="action-btn" id="actionBtn" disabled>Place Bet</button>
+  <div class="stake-note" id="stakeNote">Loading...</div>
+  <a href="index.html" class="back-link">← Back to games</a>
+
+  <div class="result" id="resultOverlay">
+    <div class="result-card">
+      <div class="result-emoji" id="resultEmoji">🎉</div>
+      <div class="result-title" id="resultTitle">You won!</div>
+      <div class="result-sub" id="resultSub"></div>
+      <button class="result-close" id="resultClose">Nice!</button>
+    </div>
+  </div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCmT04ri3vMD0O2rxelhVvF8cn2624OdGY",
+    authDomain: "naija-gain.firebaseapp.com",
+    databaseURL: "https://naija-gain-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "naija-gain",
+    storageBucket: "naija-gain.firebasestorage.app",
+    messagingSenderId: "384942407595",
+    appId: "1:384942407595:web:eaa6efdb65926fd378dcee"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  const tg = window.Telegram ? window.Telegram.WebApp : null;
+  if (tg && tg.ready) { try { tg.ready(); tg.expand(); } catch(e){} }
+
+  function getPlayerId(){
+    if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) {
+      return "tg_" + tg.initDataUnsafe.user.id;
+    }
+    let guestId = localStorage.getItem('guestId');
+    if (!guestId) {
+      guestId = "guest_" + Math.random().toString(36).slice(2, 10);
+      try { localStorage.setItem('guestId', guestId); } catch(e){}
+    }
+    return guestId;
+  }
+  const playerId = getPlayerId();
+  const playerRef = ref(db, 'players/' + playerId);
+
+  function withTimeout(promise, fallbackValue, ms = 4000){
+    return Promise.race([
+      promise,
+      new Promise((resolve) => setTimeout(() => resolve(fallbackValue), ms))
+    ]);
+  }
+
+  async function dbLoad(){
+    try {
+      const snapshot = await withTimeout(get(playerRef), null, 4000);
+      if (snapshot && snapshot.exists && snapshot.exists()) return snapshot.val();
+      return null;
+    } catch(e) { return null; }
+  }
+
+  async function dbSave(patch){
+    try {
+      const current = await dbLoad();
+      const merged = Object.assign({}, current || {}, patch);
+      await withTimeout(set(playerRef, merged), undefined, 4000);
+    } catch(e) { /* save failed silently — balance will resync next load */ }
+  }
+
+  let coinBalance = 0;
+  let selectedStake = null;
+  let roundActive = false;
+  let crashPoint = 0;
+  let roundStart = 0;
+  let animFrame = null;
+
+  // ---------- Synthesized sound (no audio files needed) ----------
+  let audioCtx = null;
+  let engineOsc = null;
+  let engineGain = null;
+
+  function ensureAudio(){
+    if (!audioCtx) {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return null;
+      audioCtx = new Ctx();
+    }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+  }
+
+  function startEngineSound(){
+    const ctx = ensureAudio();
+    if (!ctx) return;
+    engineOsc = ctx.createOscillator();
+    engineGain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 400;
+
+    engineOsc.type = 'sawtooth';
+    engineOsc.frequency.value = 70;
+    engineGain.gain.value = 0;
+
+    engineOsc.connect(filter);
+    filter.connect(engineGain);
+    engineGain.connect(ctx.destination);
+
+    engineOsc.start();
+    engineGain.gain.linearRampToValueAtTime(0.05, ctx.currentTime + 0.15);
+  }
+
+  function updateEngineSound(multiplier){
+    if (!engineOsc || !audioCtx) return;
+    const freq = 70 + Math.min(multiplier - 1, 4) * 22;
+    engineOsc.frequency.setTargetAtTime(freq, audioCtx.currentTime, 0.05);
+  }
+
+  function stopEngineSound(){
+    if (!engineOsc || !audioCtx) return;
+    const ctx = audioCtx;
+    const osc = engineOsc;
+    const gain = engineGain;
+    gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.18);
+    setTimeout(() => { try { osc.stop(); } catch(e){} }, 220);
+    engineOsc = null;
+    engineGain = null;
+  }
+
+  function playCrashSound(){
+    const ctx = ensureAudio();
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(180, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(30, ctx.currentTime + 0.35);
+    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.4);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.4);
+  }
+
+  function playHornSound(){
+    const ctx = ensureAudio();
+    if (!ctx) return;
+    [0, 0.16].forEach(delay => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.value = 480;
+      gain.gain.setValueAtTime(0.001, ctx.currentTime + delay);
+      gain.gain.linearRampToValueAtTime(0.08, ctx.currentTime + delay + 0.02);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + delay + 0.13);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + delay);
+      osc.stop(ctx.currentTime + delay + 0.14);
+    });
+  }
+
+
+  const HOUSE_EDGE = 0.04; // long-run average keeps this game from being a net coin drain
+
+  const balanceText = document.getElementById('balanceText');
+  const syncNote = document.getElementById('syncNote');
+  const track = document.getElementById('track');
+  const danfo = document.getElementById('danfo');
+  const multiplierText = document.getElementById('multiplierText');
+  const statusLine = document.getElementById('statusLine');
+  const stakePicker = document.getElementById('stakePicker');
+  const customStake = document.getElementById('customStake');
+  const actionBtn = document.getElementById('actionBtn');
+  const stakeNote = document.getElementById('stakeNote');
+  const resultOverlay = document.getElementById('resultOverlay');
+  const resultEmoji = document.getElementById('resultEmoji');
+  const resultTitle = document.getElementById('resultTitle');
+  const resultSub = document.getElementById('resultSub');
+  const resultClose = document.getElementById('resultClose');
+
+  function updateHUD(){
+    balanceText.textContent = coinBalance + " coins";
+
+    document.querySelectorAll('.stake-btn').forEach(btn => {
+      const amt = parseInt(btn.dataset.stake, 10);
+      btn.disabled = amt > coinBalance || roundActive;
+      if (amt > coinBalance && btn.classList.contains('selected')) {
+        btn.classList.remove('selected');
+        selectedStake = null;
+      }
+    });
+    customStake.disabled = roundActive;
+
+    if (roundActive) {
+      stakeNote.textContent = "Flight in progress — cash out anytime.";
+    } else if (coinBalance < 1) {
+      stakeNote.textContent = "You need coins to play — go earn some on Spin or Dice.";
+    } else {
+      const rawCustom = parseInt(customStake.value, 10);
+      if (customStake.value && !isNaN(rawCustom) && rawCustom > coinBalance) {
+        stakeNote.textContent = "You only have " + coinBalance + " coins — lower your stake.";
+      } else {
+        stakeNote.textContent = "Cash out before it crashes to win stake × multiplier.";
+      }
+    }
+
+    actionBtn.disabled = !roundActive && (selectedStake === null || selectedStake > coinBalance);
+  }
+
+  async function loadProgress(){
+    try {
+      const data = await dbLoad();
+      coinBalance = (data && typeof data.coinBalance === 'number') ? data.coinBalance : 0;
+      syncNote.textContent = "Progress saved to your account — same on every device";
+    } catch(e) {
+      coinBalance = 0;
+      syncNote.textContent = "Couldn't load saved progress — starting fresh";
+    }
+    updateHUD();
+  }
+
+  stakePicker.addEventListener('click', (e) => {
+    const btn = e.target.closest('.stake-btn');
+    if (!btn || roundActive || btn.disabled) return;
+    selectedStake = parseInt(btn.dataset.stake, 10);
+    customStake.value = "";
+    document.querySelectorAll('.stake-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    updateHUD();
+  });
+
+  customStake.addEventListener('input', () => {
+    if (roundActive) return;
+    document.querySelectorAll('.stake-btn').forEach(b => b.classList.remove('selected'));
+    const raw = parseInt(customStake.value, 10);
+    if (!customStake.value || isNaN(raw) || raw < 1) {
+      selectedStake = null;
+    } else if (raw > coinBalance) {
+      selectedStake = null;
+    } else {
+      selectedStake = raw;
+    }
+    updateHUD();
+  });
+
+  function generateCrashPoint(){
+    const r = Math.random();
+    const raw = (1 - HOUSE_EDGE) / (1 - r);
+    return Math.max(1.00, Math.floor(raw * 100) / 100);
+  }
+
+  function currentMultiplier(){
+    const elapsedSeconds = (performance.now() - roundStart) / 1000;
+    return Math.min(Math.exp(0.13 * elapsedSeconds), crashPoint);
+  }
+
+  async function placeBet(){
+    if (roundActive || selectedStake === null || selectedStake > coinBalance) return;
+
+    coinBalance -= selectedStake;
+    await dbSave({ coinBalance: coinBalance });
+
+    roundActive = true;
+    crashPoint = generateCrashPoint();
+    roundStart = performance.now();
+    track.classList.remove('crashed');
+    multiplierText.classList.remove('crashed');
+    statusLine.textContent = "On the road...";
+    actionBtn.textContent = "Cash Out";
+    actionBtn.classList.add('cashout');
+    startEngineSound();
+    updateHUD();
+    tick();
+  }
+
+  function tick(){
+    const m = currentMultiplier();
+    multiplierText.textContent = m.toFixed(2) + "x";
+
+    const progress = Math.min((m - 1) / 3, 1);
+    const x = progress * 230;
+    const bounce = Math.sin(performance.now() / 90) * 4;
+    danfo.style.transform = "translate(" + x + "px," + bounce + "px) scaleX(-1)";
+    updateEngineSound(m);
+
+    if (m >= crashPoint) {
+      crash();
+      return;
+    }
+    animFrame = requestAnimationFrame(tick);
+  }
+
+  async function crash(){
+    if (animFrame) cancelAnimationFrame(animFrame);
+    roundActive = false;
+    stopEngineSound();
+    playCrashSound();
+    track.classList.add('crashed');
+    multiplierText.classList.add('crashed');
+    multiplierText.textContent = crashPoint.toFixed(2) + "x";
+    statusLine.textContent = "Broke down!";
+    actionBtn.textContent = "Place Bet";
+    actionBtn.classList.remove('cashout');
+
+    resultEmoji.textContent = "💥";
+    resultTitle.textContent = "Danfo broke down at " + crashPoint.toFixed(2) + "x";
+    resultSub.textContent = "Lost " + selectedStake + " coins — balance: " + coinBalance + " coins";
+
+    selectedStake = null;
+    customStake.value = "";
+    document.querySelectorAll('.stake-btn').forEach(b => b.classList.remove('selected'));
+    updateHUD();
+    resultOverlay.classList.add('show');
+  }
+
+  async function cashOut(){
+    if (!roundActive) return;
+    if (animFrame) cancelAnimationFrame(animFrame);
+
+    const m = currentMultiplier();
+    roundActive = false;
+    stopEngineSound();
+    playHornSound();
+    const winnings = Math.floor(selectedStake * m);
+    coinBalance += winnings;
+    await dbSave({ coinBalance: coinBalance });
+
+    statusLine.textContent = "Cashed out!";
+    actionBtn.textContent = "Place Bet";
+    actionBtn.classList.remove('cashout');
+
+    resultEmoji.textContent = "🏆";
+    resultTitle.textContent = "Cashed out at " + m.toFixed(2) + "x!";
+    resultSub.textContent = "Won " + winnings + " coins — balance: " + coinBalance + " coins";
+
+    selectedStake = null;
+    customStake.value = "";
+    document.querySelectorAll('.stake-btn').forEach(b => b.classList.remove('selected'));
+    updateHUD();
+    resultOverlay.classList.add('show');
+  }
+
+  actionBtn.addEventListener('click', () => {
+    if (roundActive) cashOut();
+    else placeBet();
+  });
+
+  resultClose.addEventListener('click', () => {
+    resultOverlay.classList.remove('show');
+    danfo.style.transform = "translate(0,0) scaleX(-1)";
+    multiplierText.textContent = "1.00x";
+    statusLine.textContent = "Place a stake to start";
+    updateHUD();
+  });
+
+  loadProgress();
+</script>
+
+</body>
+      </html>
+    
