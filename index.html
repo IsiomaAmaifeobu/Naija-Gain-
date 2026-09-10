@@ -135,6 +135,35 @@
     line-height:1.5;
   }
 
+  /* ---------- Refer page ---------- */
+  .refer-input{
+    display:block;
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,201,60,0.3);
+    color: var(--cream);
+    font-size: 12.5px;
+    margin-bottom: 12px;
+  }
+  .refer-btn-row{ display:flex; gap:10px; }
+  .refer-btn{
+    flex:1;
+    appearance:none; border:none; cursor:pointer;
+    padding: 12px 0;
+    border-radius: 999px;
+    font-weight:700; font-size: 13.5px;
+    background: rgba(255,255,255,0.08);
+    color: var(--cream);
+    border: 1px solid rgba(255,201,60,0.3);
+  }
+  .refer-btn-gold{
+    background: linear-gradient(180deg, #F6D46B, var(--gold-dark));
+    color: #3a2a06;
+    border-color: transparent;
+  }
+
   /* ---------- Profile page ---------- */
   .profile-row{
     display:flex;
@@ -243,6 +272,23 @@
       </div>
     </div>
 
+    <!-- REFER PAGE -->
+    <div class="page" id="page-refer">
+      <div class="wallet-card">
+        <div class="wallet-balance" id="referCount">...</div>
+        <div class="wallet-label">friends joined</div>
+      </div>
+      <div class="section-label">Your referral link</div>
+      <input type="text" id="referLink" class="refer-input" readonly>
+      <div class="refer-btn-row">
+        <button class="refer-btn" id="copyLinkBtn">Copy Link</button>
+        <button class="refer-btn refer-btn-gold" id="shareLinkBtn">Share</button>
+      </div>
+      <div class="info-note" style="margin-top:18px;">
+        Share your link — when a friend opens Naija Gain through it for the first time, you both get bonus coins. You: +20 coins. Them: +10 coins to start.
+      </div>
+    </div>
+
     <!-- PROFILE PAGE -->
     <div class="page" id="page-profile">
       <div class="wallet-card">
@@ -252,6 +298,7 @@
       <div class="profile-row"><span>Player ID</span><span id="profilePlayerId">...</span></div>
       <div class="profile-row"><span>Free spins today</span><span id="profileSpins">...</span></div>
       <div class="profile-row"><span>Last played</span><span id="profileLastDate">...</span></div>
+      <div class="profile-row"><span>Friends referred</span><span id="profileReferrals">...</span></div>
     </div>
 
   </div>
@@ -259,12 +306,13 @@
   <nav class="bottom-nav">
     <button class="nav-btn active" data-page="games"><span class="nav-icon">🎮</span>Games</button>
     <button class="nav-btn" data-page="wallet"><span class="nav-icon">💰</span>Wallet</button>
+    <button class="nav-btn" data-page="refer"><span class="nav-icon">🔗</span>Refer</button>
     <button class="nav-btn" data-page="profile"><span class="nav-icon">👤</span>Profile</button>
   </nav>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+  import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCmT04ri3vMD0O2rxelhVvF8cn2624OdGY",
@@ -303,6 +351,46 @@
     ]);
   }
 
+  async function loadPlayer(id){
+    try {
+      const snapshot = await withTimeout(get(ref(db, 'players/' + id)), null, 4000);
+      if (snapshot && snapshot.exists && snapshot.exists()) return snapshot.val();
+      return null;
+    } catch(e) { return null; }
+  }
+
+  async function savePlayer(id, patch){
+    try {
+      const current = await loadPlayer(id);
+      const merged = Object.assign({}, current || {}, patch);
+      await withTimeout(set(ref(db, 'players/' + id), merged), undefined, 4000);
+    } catch(e) { /* save failed silently */ }
+  }
+
+  const BOT_USERNAME = "NaijaGain_bot";
+
+  // ---------- Referral crediting ----------
+  // Runs once per load. Only credits if this is a genuinely brand-new player
+  // (no existing record) opened via a valid ?startapp=<referrerId> link.
+  async function processReferral(){
+    const startParam = tg && tg.initDataUnsafe ? tg.initDataUnsafe.start_param : null;
+    if (!startParam || startParam === playerId) return; // no code, or self-referral
+
+    const ownData = await loadPlayer(playerId);
+    if (ownData) return; // not a new player — already has a record, don't credit again
+
+    const referrerData = await loadPlayer(startParam);
+    if (!referrerData) return; // referral code doesn't match a real player — ignore
+
+    // New player gets a starting bonus, tagged with who referred them
+    await savePlayer(playerId, { coinBalance: 10, referredBy: startParam });
+
+    // Referrer gets their reward and referral count bumped
+    const newReferralCount = (typeof referrerData.referralCount === 'number' ? referrerData.referralCount : 0) + 1;
+    const newReferrerBalance = (typeof referrerData.coinBalance === 'number' ? referrerData.coinBalance : 0) + 20;
+    await savePlayer(startParam, { coinBalance: newReferrerBalance, referralCount: newReferralCount });
+  }
+
   async function loadBalance(){
     let data = null;
     try {
@@ -313,6 +401,7 @@
     const coins = (data && typeof data.coinBalance === 'number') ? data.coinBalance : 0;
     const spins = (data && typeof data.freeSpinsLeft === 'number') ? data.freeSpinsLeft : 3;
     const lastDate = (data && data.lastSpinDate) ? data.lastSpinDate : "—";
+    const referralCount = (data && typeof data.referralCount === 'number') ? data.referralCount : 0;
 
     document.getElementById('topBalance').textContent = coins + " coins";
     document.getElementById('walletBalance').textContent = coins;
@@ -321,14 +410,46 @@
     document.getElementById('profileLastDate').textContent = lastDate;
     document.getElementById('profilePlayerId').textContent =
       playerId.length > 14 ? playerId.slice(0, 12) + "…" : playerId;
+    document.getElementById('profileReferrals').textContent = referralCount;
+    document.getElementById('referCount').textContent = referralCount;
+    document.getElementById('referLink').value = "https://t.me/" + BOT_USERNAME + "?startapp=" + playerId;
   }
+  await processReferral();
   loadBalance();
+
+  // ---------- Copy / Share referral link ----------
+  const copyLinkBtn = document.getElementById('copyLinkBtn');
+  const shareLinkBtn = document.getElementById('shareLinkBtn');
+  const referLinkInput = document.getElementById('referLink');
+
+  copyLinkBtn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(referLinkInput.value);
+    } catch(e) {
+      referLinkInput.select();
+      try { document.execCommand('copy'); } catch(e2) { /* nothing more we can do */ }
+    }
+    const original = copyLinkBtn.textContent;
+    copyLinkBtn.textContent = "Copied!";
+    setTimeout(() => { copyLinkBtn.textContent = original; }, 1500);
+  });
+
+  shareLinkBtn.addEventListener('click', () => {
+    const shareText = "Play Naija Gain with me — spin, roll dice, and win coins! ";
+    const shareUrl = "https://t.me/share/url?url=" + encodeURIComponent(referLinkInput.value) + "&text=" + encodeURIComponent(shareText);
+    if (tg && tg.openTelegramLink) {
+      tg.openTelegramLink(shareUrl);
+    } else {
+      window.open(shareUrl, '_blank');
+    }
+  });
 
   // ---------- Bottom nav tab switching ----------
   const navButtons = document.querySelectorAll('.nav-btn');
   const pages = {
     games: document.getElementById('page-games'),
     wallet: document.getElementById('page-wallet'),
+    refer: document.getElementById('page-refer'),
     profile: document.getElementById('page-profile'),
   };
   navButtons.forEach(btn => {
@@ -337,12 +458,11 @@
       btn.classList.add('active');
       Object.values(pages).forEach(p => p.classList.remove('active'));
       pages[btn.dataset.page].classList.add('active');
-      // Refresh balance each time Wallet/Profile is opened
-      if (btn.dataset.page === 'wallet' || btn.dataset.page === 'profile') loadBalance();
+      // Refresh balance each time Wallet/Refer/Profile is opened
+      if (btn.dataset.page !== 'games') loadBalance();
     });
   });
 </script>
 
 </body>
-  </html>
-  
+</html>
