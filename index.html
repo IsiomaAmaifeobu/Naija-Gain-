@@ -567,4 +567,80 @@
 
     showRewardedAd()
       .then(async () => {
-        // Ad genuinely watched — credit the rew
+        // Ad genuinely watched — credit the reward
+title.textContent = "Ad complete!";
+        countEl.textContent = "✓";
+        adsWatchedToday += 1;
+        const newBalance = (parseInt(document.getElementById('topBalance').textContent, 10) || 0) + AD_REWARD;
+        await savePlayer(playerId, {
+          coinBalance: newBalance,
+          adsWatchedToday: adsWatchedToday,
+          lastAdDate: todayStr()
+        });
+        claimBtn.textContent = "Nice!";
+        claimBtn.classList.add('show');
+        claimBtn.onclick = () => { modal.classList.remove('show'); claimBtn.textContent = "Claim +20 coins"; loadBalance(); };
+      })
+      .catch(() => {
+        // Ad failed or was skipped — no reward
+        title.textContent = "Ad skipped or failed";
+        countEl.textContent = "✕";
+        claimBtn.textContent = "Close";
+        claimBtn.classList.add('show');
+        claimBtn.onclick = () => { modal.classList.remove('show'); claimBtn.textContent = "Claim +20 coins"; };
+      });
+  }
+
+  await processReferral();
+  loadBalance();
+
+  // ---------- Copy / Share referral link ----------
+  const copyLinkBtn = document.getElementById('copyLinkBtn');
+  const shareLinkBtn = document.getElementById('shareLinkBtn');
+  const referLinkInput = document.getElementById('referLink');
+
+  copyLinkBtn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(referLinkInput.value);
+    } catch(e) {
+      referLinkInput.select();
+      try { document.execCommand('copy'); } catch(e2) { /* nothing more we can do */ }
+    }
+    const original = copyLinkBtn.textContent;
+    copyLinkBtn.textContent = "Copied!";
+    setTimeout(() => { copyLinkBtn.textContent = original; }, 1500);
+  });
+
+  shareLinkBtn.addEventListener('click', () => {
+    const shareText = "Play Naija Gain with me — spin, roll dice, and win coins! ";
+    const shareUrl = "https://t.me/share/url?url=" + encodeURIComponent(referLinkInput.value) + "&text=" + encodeURIComponent(shareText);
+    if (tg && tg.openTelegramLink) {
+      tg.openTelegramLink(shareUrl);
+    } else {
+      window.open(shareUrl, '_blank');
+    }
+  });
+
+  // ---------- Bottom nav tab switching ----------
+  const navButtons = document.querySelectorAll('.nav-btn');
+  const pages = {
+    games: document.getElementById('page-games'),
+    earn: document.getElementById('page-earn'),
+    wallet: document.getElementById('page-wallet'),
+    refer: document.getElementById('page-refer'),
+    profile: document.getElementById('page-profile'),
+  };
+  navButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      navButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      Object.values(pages).forEach(p => p.classList.remove('active'));
+      pages[btn.dataset.page].classList.add('active');
+      // Refresh balance each time Wallet/Refer/Profile is opened
+      if (btn.dataset.page !== 'games') loadBalance();
+    });
+  });
+</script>
+
+</body>
+</html>
