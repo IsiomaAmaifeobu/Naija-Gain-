@@ -47,23 +47,19 @@
   }
   .sync-note{ font-size: 11px; color: rgba(185,217,201,0.7); margin-bottom: 24px; text-align:center; }
 
-  .die-wrap{
-    width: 140px; height: 140px;
-    background: linear-gradient(180deg, #FBF3DC, #E9DCB5);
-    border-radius: 26px;
-    display:flex; align-items:center; justify-content:center;
-    font-size: 72px;
-    box-shadow: 0 12px 28px rgba(0,0,0,0.4), inset 0 -4px 0 rgba(0,0,0,0.1);
-    margin-bottom: 26px;
-    color: #2b2118;
-    transition: transform 0.08s ease;
-  }
-  .die-wrap.rolling{ animation: shake 0.35s infinite; }
-  @keyframes shake{
-    0%{ transform: rotate(-4deg) scale(1); }
-    50%{ transform: rotate(4deg) scale(1.04); }
-    100%{ transform: rotate(-4deg) scale(1); }
-  }
+  .die-wrap{width:164px;height:164px;margin-bottom:30px;display:grid;place-items:center;perspective:900px;position:relative;}
+  .die-shadow{position:absolute;width:112px;height:24px;bottom:4px;border-radius:50%;background:rgba(0,0,0,.34);filter:blur(10px);}
+  .die-cube{position:relative;width:112px;height:112px;transform-style:preserve-3d;transform:rotateX(-18deg) rotateY(-24deg);transition:transform .65s cubic-bezier(.2,.8,.2,1);filter:drop-shadow(0 18px 16px rgba(0,0,0,.34));}
+  .die-cube.rolling{animation:diceRoll .12s linear infinite;}
+  @keyframes diceRoll{0%{transform:rotateX(0) rotateY(0) rotateZ(0) scale(1)}25%{transform:rotateX(90deg) rotateY(55deg) rotateZ(18deg) scale(1.05)}50%{transform:rotateX(180deg) rotateY(140deg) rotateZ(-12deg) scale(.96)}75%{transform:rotateX(270deg) rotateY(220deg) rotateZ(14deg) scale(1.04)}100%{transform:rotateX(360deg) rotateY(360deg) rotateZ(0) scale(1)}}
+  .die-face{position:absolute;inset:0;padding:17px;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:4px;align-items:center;justify-items:center;background:linear-gradient(145deg,#fffdf3,#f7edcf 62%,#ded0a9);border:1px solid rgba(80,60,20,.25);border-radius:18px;box-shadow:inset 5px 5px 10px rgba(255,255,255,.9),inset -6px -8px 12px rgba(120,90,30,.18);backface-visibility:hidden;}
+  .pip{width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#40372b,#17130f 70%);box-shadow:inset 2px 2px 3px rgba(255,255,255,.08),0 1px 2px rgba(0,0,0,.35);}
+  .face-1{transform:translateZ(56px)} .face-2{transform:rotateX(90deg) translateZ(56px)} .face-3{transform:rotateY(90deg) translateZ(56px)} .face-4{transform:rotateY(-90deg) translateZ(56px)} .face-5{transform:rotateX(-90deg) translateZ(56px)} .face-6{transform:rotateY(180deg) translateZ(56px)}
+  .face-1 .pip:nth-child(1),.face-2 .pip:nth-child(1),.face-2 .pip:nth-child(5),.face-3 .pip:nth-child(1),.face-3 .pip:nth-child(5),.face-3 .pip:nth-child(9),.face-4 .pip:nth-child(1),.face-4 .pip:nth-child(4),.face-4 .pip:nth-child(6),.face-4 .pip:nth-child(9),.face-5 .pip:nth-child(1),.face-5 .pip:nth-child(3),.face-5 .pip:nth-child(5),.face-5 .pip:nth-child(7),.face-5 .pip:nth-child(9),.face-6 .pip:nth-child(1),.face-6 .pip:nth-child(3),.face-6 .pip:nth-child(4),.face-6 .pip:nth-child(6),.face-6 .pip:nth-child(7),.face-6 .pip:nth-child(9){visibility:visible}
+  .die-face .pip{visibility:hidden}
+  .face-1 .pip:nth-child(5),.face-2 .pip:nth-child(1),.face-2 .pip:nth-child(9),.face-3 .pip:nth-child(1),.face-3 .pip:nth-child(5),.face-3 .pip:nth-child(9),.face-4 .pip:nth-child(1),.face-4 .pip:nth-child(4),.face-4 .pip:nth-child(6),.face-4 .pip:nth-child(9),.face-5 .pip:nth-child(1),.face-5 .pip:nth-child(3),.face-5 .pip:nth-child(5),.face-5 .pip:nth-child(7),.face-5 .pip:nth-child(9),.face-6 .pip:nth-child(1),.face-6 .pip:nth-child(3),.face-6 .pip:nth-child(5),.face-6 .pip:nth-child(7),.face-6 .pip:nth-child(9){visibility:visible}
+  .die-cube.show-1{transform:rotateX(-18deg) rotateY(-24deg)} .die-cube.show-2{transform:rotateX(-90deg)} .die-cube.show-3{transform:rotateY(-90deg)} .die-cube.show-4{transform:rotateY(90deg)} .die-cube.show-5{transform:rotateX(90deg)} .die-cube.show-6{transform:rotateY(180deg)}
+
 
   .pick-label{ font-size: 13px; color: var(--muted); margin-bottom: 10px; }
   .picker{
@@ -115,7 +111,7 @@
     transform: scale(0.85); transition: transform 0.25s ease;
   }
   .result.show .result-card{ transform: scale(1); }
-  .result-emoji{ font-size:44px; margin-bottom:6px; }
+  .result-mark{width:52px;height:52px;margin:0 auto 10px;border:2px solid var(--gold);border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:900;color:var(--gold);letter-spacing:.08em;}
   .result-title{ font-size:20px; font-weight:800; color:var(--gold); margin-bottom:4px; }
   .result-sub{ font-size:13px; color:var(--muted); margin-bottom:20px; }
   .result-close{
@@ -133,7 +129,17 @@
   <div class="balance"><span class="coin-dot"></span><span id="balanceText">Loading...</span></div>
   <div class="sync-note" id="syncNote">Loading your saved progress...</div>
 
-  <div class="die-wrap" id="dieFace">🎲</div>
+  <div class="die-wrap" id="dieFace">
+    <div class="die-shadow"></div>
+    <div class="die-cube show-1" id="dieCube" aria-label="Dice showing 1">
+      <div class="die-face face-1"><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i></div>
+      <div class="die-face face-2"><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i></div>
+      <div class="die-face face-3"><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i></div>
+      <div class="die-face face-4"><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i></div>
+      <div class="die-face face-5"><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i></div>
+      <div class="die-face face-6"><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i></div>
+    </div>
+  </div>
 
   <div class="pick-label">Pick your number</div>
   <div class="picker" id="picker">
@@ -151,7 +157,7 @@
 
   <div class="result" id="resultOverlay">
     <div class="result-card">
-      <div class="result-emoji" id="resultEmoji">🎉</div>
+      <div class="result-mark" id="resultMark">WIN</div>
       <div class="result-title" id="resultTitle">You won!</div>
       <div class="result-sub" id="resultSub">Come back tomorrow for more rolls.</div>
       <button class="result-close" id="resultClose">Nice!</button>
@@ -221,8 +227,6 @@
     return d.getFullYear() + "-" + (d.getMonth()+1) + "-" + d.getDate();
   }
 
-  const DIE_FACES = ["", "⚀", "⚁", "⚂", "⚃", "⚄", "⚅"];
-
   let coinBalance = 0;
   let rollsLeft = 3;
   let selectedNum = null;
@@ -231,11 +235,11 @@
   const balanceText = document.getElementById('balanceText');
   const syncNote = document.getElementById('syncNote');
   const dieFace = document.getElementById('dieFace');
+  const dieCube = document.getElementById('dieCube');
   const picker = document.getElementById('picker');
   const rollBtn = document.getElementById('rollBtn');
   const rollsLeftEl = document.getElementById('rollsLeft');
   const resultOverlay = document.getElementById('resultOverlay');
-  const resultEmoji = document.getElementById('resultEmoji');
   const resultTitle = document.getElementById('resultTitle');
   const resultSub = document.getElementById('resultSub');
   const resultClose = document.getElementById('resultClose');
@@ -289,18 +293,21 @@
     if (rolling || rollsLeft <= 0 || selectedNum === null) return;
     rolling = true;
     rollBtn.disabled = true;
-    dieFace.classList.add('rolling');
+    dieCube.classList.remove('show-1','show-2','show-3','show-4','show-5','show-6');
+    dieCube.classList.add('rolling');
 
     let ticks = 0;
     const maxTicks = 14;
     const interval = setInterval(() => {
-      dieFace.textContent = DIE_FACES[1 + Math.floor(Math.random()*6)];
+      dieCube.style.transform = `rotateX(${Math.random()*360}deg) rotateY(${Math.random()*360}deg) rotateZ(${Math.random()*90-45}deg)`;
       ticks++;
       if (ticks >= maxTicks) {
         clearInterval(interval);
         const finalRoll = 1 + Math.floor(Math.random()*6);
-        dieFace.textContent = DIE_FACES[finalRoll];
-        dieFace.classList.remove('rolling');
+        dieCube.classList.remove('rolling');
+        dieCube.classList.add('show-' + finalRoll);
+        dieCube.style.transform = '';
+        dieCube.setAttribute('aria-label', 'Dice showing ' + finalRoll);
         onRollComplete(finalRoll);
       }
     }, 90);
@@ -312,16 +319,16 @@
 
     if (diff === 0) {
       coinBalance += 30;
-      resultEmoji.textContent = "🏆";
+      document.getElementById('resultMark').textContent = 'WIN';
       resultTitle.textContent = "Exact match! +30 coins";
       resultSub.textContent = "Rolled " + finalRoll + " — balance: " + coinBalance + " coins";
     } else if (diff === 1) {
       coinBalance += 5;
-      resultEmoji.textContent = "🎉";
+      document.getElementById('resultMark').textContent = 'CLOSE';
       resultTitle.textContent = "So close! +5 coins";
       resultSub.textContent = "Rolled " + finalRoll + ", you picked " + selectedNum;
     } else {
-      resultEmoji.textContent = "🔄";
+      document.getElementById('resultMark').textContent = 'MISS';
       resultTitle.textContent = "No match this time";
       resultSub.textContent = "Rolled " + finalRoll + ", you picked " + selectedNum;
     }
@@ -344,4 +351,5 @@
 
 </body>
   </html>
+
   
