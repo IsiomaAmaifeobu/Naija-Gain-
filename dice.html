@@ -6,163 +6,120 @@
 <title>Naija Gain — Dice Roll</title>
 <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
 <style>
-  :root{
-    --bg-deep: #0B3D2E;
-    --bg-deep2: #0F4D3A;
-    --gold: #FFC93C;
-    --gold-dark: #D9A02B;
-    --cream: #FBF3DC;
-    --red: #E4572E;
-    --card-dark: #08291F;
-    --muted: #B9D9C9;
-  }
-  *{box-sizing:border-box;}
-  body{
-    margin:0;
-    min-height:100vh;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    background: radial-gradient(circle at 50% 0%, var(--bg-deep2), var(--bg-deep) 70%);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    color: var(--cream);
-    padding: 24px 16px 40px;
-    overflow-x:hidden;
-  }
-  .brand{ font-size: 28px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 2px; text-align:center; }
-  .brand span{ color: var(--gold); }
-  .tagline{ font-size: 13px; color: var(--muted); margin-bottom: 22px; text-align:center; }
-  .balance{
-    display:flex; align-items:center; gap:8px;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,201,60,0.35);
-    padding: 8px 18px; border-radius: 999px;
-    margin-bottom: 8px; font-weight:700; font-size: 15px;
-  }
-  .coin-dot{
-    width:18px;height:18px;border-radius:50%;
-    background: radial-gradient(circle at 35% 30%, #FFE9A8, var(--gold) 60%, var(--gold-dark));
-    box-shadow: 0 0 8px rgba(255,201,60,0.6);
-  }
-  .sync-note{ font-size: 11px; color: rgba(185,217,201,0.7); margin-bottom: 24px; text-align:center; }
-
-  .die-wrap{width:164px;height:164px;margin-bottom:30px;display:grid;place-items:center;perspective:900px;position:relative;}
-  .die-shadow{position:absolute;width:112px;height:24px;bottom:4px;border-radius:50%;background:rgba(0,0,0,.34);filter:blur(10px);}
-  .die-cube{position:relative;width:112px;height:112px;transform-style:preserve-3d;transform:rotateX(-18deg) rotateY(-24deg);transition:transform .65s cubic-bezier(.2,.8,.2,1);filter:drop-shadow(0 18px 16px rgba(0,0,0,.34));}
-  .die-cube.rolling{animation:diceRoll .12s linear infinite;}
-  @keyframes diceRoll{0%{transform:rotateX(0) rotateY(0) rotateZ(0) scale(1)}25%{transform:rotateX(90deg) rotateY(55deg) rotateZ(18deg) scale(1.05)}50%{transform:rotateX(180deg) rotateY(140deg) rotateZ(-12deg) scale(.96)}75%{transform:rotateX(270deg) rotateY(220deg) rotateZ(14deg) scale(1.04)}100%{transform:rotateX(360deg) rotateY(360deg) rotateZ(0) scale(1)}}
-  .die-face{position:absolute;inset:0;padding:17px;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:4px;align-items:center;justify-items:center;background:linear-gradient(145deg,#fffdf3,#f7edcf 62%,#ded0a9);border:1px solid rgba(80,60,20,.25);border-radius:18px;box-shadow:inset 5px 5px 10px rgba(255,255,255,.9),inset -6px -8px 12px rgba(120,90,30,.18);backface-visibility:hidden;}
-  .pip{width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#40372b,#17130f 70%);box-shadow:inset 2px 2px 3px rgba(255,255,255,.08),0 1px 2px rgba(0,0,0,.35);}
-  .face-1{transform:translateZ(56px)} .face-2{transform:rotateX(90deg) translateZ(56px)} .face-3{transform:rotateY(90deg) translateZ(56px)} .face-4{transform:rotateY(-90deg) translateZ(56px)} .face-5{transform:rotateX(-90deg) translateZ(56px)} .face-6{transform:rotateY(180deg) translateZ(56px)}
-  .face-1 .pip:nth-child(1),.face-2 .pip:nth-child(1),.face-2 .pip:nth-child(5),.face-3 .pip:nth-child(1),.face-3 .pip:nth-child(5),.face-3 .pip:nth-child(9),.face-4 .pip:nth-child(1),.face-4 .pip:nth-child(4),.face-4 .pip:nth-child(6),.face-4 .pip:nth-child(9),.face-5 .pip:nth-child(1),.face-5 .pip:nth-child(3),.face-5 .pip:nth-child(5),.face-5 .pip:nth-child(7),.face-5 .pip:nth-child(9),.face-6 .pip:nth-child(1),.face-6 .pip:nth-child(3),.face-6 .pip:nth-child(4),.face-6 .pip:nth-child(6),.face-6 .pip:nth-child(7),.face-6 .pip:nth-child(9){visibility:visible}
-  .die-face .pip{visibility:hidden}
-  .face-1 .pip:nth-child(5),.face-2 .pip:nth-child(1),.face-2 .pip:nth-child(9),.face-3 .pip:nth-child(1),.face-3 .pip:nth-child(5),.face-3 .pip:nth-child(9),.face-4 .pip:nth-child(1),.face-4 .pip:nth-child(4),.face-4 .pip:nth-child(6),.face-4 .pip:nth-child(9),.face-5 .pip:nth-child(1),.face-5 .pip:nth-child(3),.face-5 .pip:nth-child(5),.face-5 .pip:nth-child(7),.face-5 .pip:nth-child(9),.face-6 .pip:nth-child(1),.face-6 .pip:nth-child(3),.face-6 .pip:nth-child(5),.face-6 .pip:nth-child(7),.face-6 .pip:nth-child(9){visibility:visible}
-  .die-cube.show-1{transform:rotateX(-18deg) rotateY(-24deg)} .die-cube.show-2{transform:rotateX(-90deg)} .die-cube.show-3{transform:rotateY(-90deg)} .die-cube.show-4{transform:rotateY(90deg)} .die-cube.show-5{transform:rotateX(90deg)} .die-cube.show-6{transform:rotateY(180deg)}
-
-
-  .pick-label{ font-size: 13px; color: var(--muted); margin-bottom: 10px; }
-  .picker{
-    display:flex; gap:8px; margin-bottom: 26px;
-  }
-  .pick-btn{
-    appearance:none; border:none; cursor:pointer;
-    width: 42px; height: 42px;
-    border-radius: 12px;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,201,60,0.3);
-    color: var(--cream);
-    font-weight:800; font-size: 16px;
-  }
-  .pick-btn.selected{
-    background: linear-gradient(180deg, #F6D46B, var(--gold-dark));
-    color: #3a2a06;
-    border-color: transparent;
-  }
-  .pick-btn:disabled{ opacity:0.5; cursor:default; }
-
-  .roll-btn{
-    appearance:none; border:none; cursor:pointer;
-    background: linear-gradient(180deg, #F6D46B, var(--gold-dark));
-    color: #3a2a06; font-weight:800; font-size:17px; letter-spacing:0.02em;
-    padding: 14px 46px; border-radius: 999px;
-    box-shadow: 0 4px 0 #8f6a13, 0 10px 20px rgba(0,0,0,0.35);
-    transition: transform 0.08s ease;
-  }
-  .roll-btn:active{ transform: translateY(3px); box-shadow: 0 1px 0 #8f6a13, 0 4px 10px rgba(0,0,0,0.35); }
-  .roll-btn:disabled{ opacity:0.55; cursor:default; }
-
-  .rolls-left{ margin-top: 14px; font-size: 13px; color: var(--muted); }
-  .back-link{ margin-top: 22px; font-size: 13px; color: var(--gold); text-decoration:none; }
-
-  .result{
-    position:fixed; inset:0;
-    background: rgba(6,20,15,0.72);
-    display:flex; align-items:center; justify-content:center;
-    opacity:0; pointer-events:none;
-    transition: opacity 0.25s ease;
-    z-index: 20;
-  }
-  .result.show{ opacity:1; pointer-events:auto; }
-  .result-card{
-    background: linear-gradient(180deg, var(--bg-deep2), var(--bg-deep));
-    border: 2px solid var(--gold); border-radius: 20px;
-    padding: 32px 28px; text-align:center; max-width: 280px;
-    transform: scale(0.85); transition: transform 0.25s ease;
-  }
-  .result.show .result-card{ transform: scale(1); }
-  .result-mark{width:52px;height:52px;margin:0 auto 10px;border:2px solid var(--gold);border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:900;color:var(--gold);letter-spacing:.08em;}
-  .result-title{ font-size:20px; font-weight:800; color:var(--gold); margin-bottom:4px; }
-  .result-sub{ font-size:13px; color:var(--muted); margin-bottom:20px; }
-  .result-close{
-    appearance:none; border:none; cursor:pointer;
-    background: var(--gold); color:#3a2a06; font-weight:700;
-    padding: 10px 28px; border-radius: 999px; font-size:14px;
-  }
+:root{
+  --bg:#062f25;
+  --bg2:#084638;
+  --panel:#0b4a3a;
+  --panel2:#0e5543;
+  --gold:#f7c84a;
+  --gold2:#d99b19;
+  --text:#fff8df;
+  --muted:#b9d4ca;
+  --line:rgba(247,200,74,.22);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--text);background:linear-gradient(160deg,#083c2f 0%,#052d24 72%)}
+body{min-height:100vh;padding:18px 16px 34px;overflow-x:hidden}
+button{font:inherit}
+.app{width:100%;max-width:430px;margin:0 auto}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.back{width:42px;height:42px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.045);color:var(--text);font-size:24px;display:grid;place-items:center;cursor:pointer;text-decoration:none}
+.top-title{font-size:15px;font-weight:800;letter-spacing:.02em}
+.balance{display:flex;align-items:center;gap:9px;padding:9px 15px;border:1px solid rgba(247,200,74,.28);border-radius:999px;background:rgba(255,255,255,.045);font-size:14px;font-weight:800}
+.coin{width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 32% 28%,#fff2a6 0 10%,#f8ce55 38%,#d69413 82%);box-shadow:inset -2px -2px 4px rgba(80,50,0,.28),0 0 13px rgba(247,200,74,.28)}
+.hero{text-align:center;padding:7px 0 0}
+.brand{font-size:31px;line-height:1;font-weight:900;letter-spacing:-1.2px;margin-top:4px}.brand span{color:var(--gold)}
+.tagline{margin:8px 0 14px;color:var(--muted);font-size:14px}
+.sync{font-size:11px;color:rgba(185,212,202,.72);margin-bottom:18px}
+.game-card{position:relative;border:1px solid var(--line);border-radius:28px;background:linear-gradient(180deg,rgba(14,85,67,.82),rgba(6,56,43,.78));box-shadow:0 18px 45px rgba(0,0,0,.16);padding:22px 16px 20px;overflow:hidden}
+.game-card:before{content:"";position:absolute;width:190px;height:190px;left:50%;top:8px;transform:translateX(-50%);border-radius:50%;background:rgba(247,200,74,.055);filter:blur(2px)}
+.stage{height:250px;position:relative;display:flex;align-items:center;justify-content:center;perspective:800px}
+.stage:after{content:"";position:absolute;bottom:24px;width:138px;height:25px;border-radius:50%;background:rgba(0,0,0,.38);filter:blur(13px)}
+.die-holder{position:relative;width:158px;height:158px;display:grid;place-items:center;z-index:2;transform:rotate(-7deg)}
+.die-holder:before{content:"";position:absolute;inset:7px;border-radius:32px;background:linear-gradient(145deg,rgba(255,255,255,.16),rgba(255,255,255,0));filter:blur(5px);transform:translate(9px,12px)}
+.die{position:relative;width:142px;height:142px;border-radius:30px;background:linear-gradient(145deg,#fffdf7 0%,#f6ebca 54%,#d7bf83 100%);border:1px solid rgba(102,75,20,.35);box-shadow:inset 7px 7px 12px rgba(255,255,255,.85),inset -9px -11px 17px rgba(108,75,13,.25),0 17px 25px rgba(0,0,0,.38);transform:skewY(1deg);transition:transform .18s ease}
+.die:before{content:"";position:absolute;inset:5px;border-radius:26px;border:1px solid rgba(255,255,255,.45);pointer-events:none}
+.die.rolling{animation:realRoll .13s linear infinite}
+@keyframes realRoll{0%{transform:rotate(0deg) scale(1)}25%{transform:rotate(82deg) scale(.96)}50%{transform:rotate(174deg) scale(1.03)}75%{transform:rotate(268deg) scale(.97)}100%{transform:rotate(360deg) scale(1)}}
+.pips{position:absolute;inset:22px;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);place-items:center}
+.pip{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 28%,#5b5140 0%,#28231b 42%,#0f0d0a 100%);box-shadow:inset 2px 2px 3px rgba(255,255,255,.12),inset -2px -2px 3px rgba(0,0,0,.55),0 2px 3px rgba(0,0,0,.22);opacity:0;transform:scale(.7);transition:opacity .12s,transform .12s}
+.die[data-value="1"] .pip:nth-child(5),.die[data-value="2"] .pip:nth-child(1),.die[data-value="2"] .pip:nth-child(9),.die[data-value="3"] .pip:nth-child(1),.die[data-value="3"] .pip:nth-child(5),.die[data-value="3"] .pip:nth-child(9),.die[data-value="4"] .pip:nth-child(1),.die[data-value="4"] .pip:nth-child(3),.die[data-value="4"] .pip:nth-child(7),.die[data-value="4"] .pip:nth-child(9),.die[data-value="5"] .pip:nth-child(1),.die[data-value="5"] .pip:nth-child(3),.die[data-value="5"] .pip:nth-child(5),.die[data-value="5"] .pip:nth-child(7),.die[data-value="5"] .pip:nth-child(9),.die[data-value="6"] .pip:nth-child(1),.die[data-value="6"] .pip:nth-child(3),.die[data-value="6"] .pip:nth-child(4),.die[data-value="6"] .pip:nth-child(6),.die[data-value="6"] .pip:nth-child(7),.die[data-value="6"] .pip:nth-child(9){opacity:1;transform:scale(1)}
+.die[data-value="6"] .pip:nth-child(5){opacity:0}
+.roll-result{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);z-index:4;font-size:12px;font-weight:800;letter-spacing:.08em;color:rgba(255,248,223,.66);text-transform:uppercase}
+.pick-title{text-align:center;font-size:13px;color:var(--muted);margin:4px 0 11px}
+.picker{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin:0 2px 18px}
+.pick-btn{height:46px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.045);color:var(--text);font-size:16px;font-weight:900;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.04);transition:.15s}
+.pick-btn:active{transform:scale(.95)}
+.pick-btn.selected{background:linear-gradient(145deg,#ffe17a,#d99b19);border-color:transparent;color:#382600;box-shadow:0 7px 18px rgba(247,200,74,.2),inset 0 1px 0 rgba(255,255,255,.45)}
+.pick-btn:disabled{opacity:.4;cursor:default}
+.roll-btn{width:100%;height:54px;border:0;border-radius:18px;background:linear-gradient(180deg,#ffdc67,#d99b19);color:#392600;font-size:17px;font-weight:900;box-shadow:0 5px 0 #9b6c0e,0 12px 22px rgba(0,0,0,.22);cursor:pointer;transition:transform .08s,filter .15s}
+.roll-btn:active:not(:disabled){transform:translateY(4px);box-shadow:0 1px 0 #9b6c0e,0 6px 12px rgba(0,0,0,.2)}
+.roll-btn:disabled{filter:saturate(.45);opacity:.58;cursor:default;box-shadow:0 4px 0 #73571b}
+.rolls-left{text-align:center;margin-top:13px;font-size:12px;color:var(--muted)}
+.back-games{display:block;text-align:center;margin:18px 0 4px;color:var(--gold);text-decoration:none;font-size:13px;font-weight:700}
+.result{position:fixed;inset:0;z-index:20;background:rgba(2,18,14,.78);backdrop-filter:blur(7px);display:flex;align-items:center;justify-content:center;padding:22px;opacity:0;pointer-events:none;transition:opacity .2s}
+.result.show{opacity:1;pointer-events:auto}
+.result-card{width:min(340px,100%);padding:28px 24px 24px;text-align:center;border:1px solid rgba(247,200,74,.38);border-radius:26px;background:linear-gradient(180deg,#0e5543,#062f25);box-shadow:0 25px 70px rgba(0,0,0,.45);transform:translateY(12px) scale(.96);transition:.22s}
+.result.show .result-card{transform:none}
+.result-die{width:64px;height:64px;margin:0 auto 14px;border-radius:17px;background:linear-gradient(145deg,#fffdf7,#e0c886);box-shadow:inset 3px 3px 7px rgba(255,255,255,.8),inset -5px -6px 8px rgba(80,55,10,.2),0 8px 16px rgba(0,0,0,.25);display:grid;place-items:center;color:#241d11;font-weight:900;font-size:20px}
+.result-title{font-size:21px;font-weight:900;color:var(--gold);margin-bottom:7px}.result-sub{font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:19px}
+.result-close{border:0;border-radius:14px;padding:12px 28px;background:var(--gold);color:#382600;font-size:14px;font-weight:900;cursor:pointer}
+@media(max-height:700px){body{padding-top:10px}.stage{height:205px}.die-holder{transform:scale(.86) rotate(-7deg)}.game-card{padding-top:14px}.sync{margin-bottom:12px}.brand{font-size:28px}}
 </style>
 </head>
 <body>
+<div class="app">
+  <div class="topbar">
+    <a class="back" href="index.html" aria-label="Back">‹</a>
+    <div class="top-title">DICE ROLL</div>
+    <div class="balance"><span class="coin"></span><span id="balanceText">Loading...</span></div>
+  </div>
 
-  <div class="brand">Naija <span>Gain</span></div>
-  <div class="tagline">Guess right. Double your luck.</div>
+  <section class="hero">
+    <div class="brand">Naija <span>Gain</span></div>
+    <div class="tagline">Pick a number. Roll the dice. Win coins.</div>
+    <div class="sync" id="syncNote">Loading your saved progress...</div>
+  </section>
 
-  <div class="balance"><span class="coin-dot"></span><span id="balanceText">Loading...</span></div>
-  <div class="sync-note" id="syncNote">Loading your saved progress...</div>
-
-  <div class="die-wrap" id="dieFace">
-    <div class="die-shadow"></div>
-    <div class="die-cube show-1" id="dieCube" aria-label="Dice showing 1">
-      <div class="die-face face-1"><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i></div>
-      <div class="die-face face-2"><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i></div>
-      <div class="die-face face-3"><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i></div>
-      <div class="die-face face-4"><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i></div>
-      <div class="die-face face-5"><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i></div>
-      <div class="die-face face-6"><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i><i class="pip"></i></div>
+  <main class="game-card">
+    <div class="stage">
+      <div class="die-holder">
+        <div class="die" id="dieCube" data-value="1" aria-label="Dice showing 1">
+          <div class="pips">
+            <i class="pip"></i><i class="pip"></i><i class="pip"></i>
+            <i class="pip"></i><i class="pip"></i><i class="pip"></i>
+            <i class="pip"></i><i class="pip"></i><i class="pip"></i>
+          </div>
+        </div>
+      </div>
+      <div class="roll-result" id="rollResult">Ready to roll</div>
     </div>
-  </div>
 
-  <div class="pick-label">Pick your number</div>
-  <div class="picker" id="picker">
-    <button class="pick-btn" data-num="1">1</button>
-    <button class="pick-btn" data-num="2">2</button>
-    <button class="pick-btn" data-num="3">3</button>
-    <button class="pick-btn" data-num="4">4</button>
-    <button class="pick-btn" data-num="5">5</button>
-    <button class="pick-btn" data-num="6">6</button>
-  </div>
-
-  <button class="roll-btn" id="rollBtn" disabled>Roll the Dice</button>
-  <div class="rolls-left" id="rollsLeft">Loading...</div>
-  <a href="index.html" class="back-link">← Back to games</a>
-
-  <div class="result" id="resultOverlay">
-    <div class="result-card">
-      <div class="result-mark" id="resultMark">WIN</div>
-      <div class="result-title" id="resultTitle">You won!</div>
-      <div class="result-sub" id="resultSub">Come back tomorrow for more rolls.</div>
-      <button class="result-close" id="resultClose">Nice!</button>
+    <div class="pick-title">Choose your number</div>
+    <div class="picker" id="picker">
+      <button class="pick-btn" data-num="1">1</button>
+      <button class="pick-btn" data-num="2">2</button>
+      <button class="pick-btn" data-num="3">3</button>
+      <button class="pick-btn" data-num="4">4</button>
+      <button class="pick-btn" data-num="5">5</button>
+      <button class="pick-btn" data-num="6">6</button>
     </div>
+
+    <button class="roll-btn" id="rollBtn" disabled>Roll the Dice</button>
+    <div class="rolls-left" id="rollsLeft">Loading...</div>
+  </main>
+
+  <a class="back-games" href="index.html">← Back to games</a>
+</div>
+
+<div class="result" id="resultOverlay">
+  <div class="result-card">
+    <div class="result-die" id="resultMark">1</div>
+    <div class="result-title" id="resultTitle">You won!</div>
+    <div class="result-sub" id="resultSub">Come back tomorrow for more rolls.</div>
+    <button class="result-close" id="resultClose">Continue</button>
   </div>
+</div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -234,8 +191,7 @@
 
   const balanceText = document.getElementById('balanceText');
   const syncNote = document.getElementById('syncNote');
-  const dieFace = document.getElementById('dieFace');
-  const dieCube = document.getElementById('dieCube');
+    const dieCube = document.getElementById('dieCube');
   const picker = document.getElementById('picker');
   const rollBtn = document.getElementById('rollBtn');
   const rollsLeftEl = document.getElementById('rollsLeft');
@@ -293,7 +249,6 @@
     if (rolling || rollsLeft <= 0 || selectedNum === null) return;
     rolling = true;
     rollBtn.disabled = true;
-    dieCube.classList.remove('show-1','show-2','show-3','show-4','show-5','show-6');
     dieCube.classList.add('rolling');
 
     let ticks = 0;
@@ -305,9 +260,10 @@
         clearInterval(interval);
         const finalRoll = 1 + Math.floor(Math.random()*6);
         dieCube.classList.remove('rolling');
-        dieCube.classList.add('show-' + finalRoll);
+        dieCube.dataset.value = finalRoll;
         dieCube.style.transform = '';
         dieCube.setAttribute('aria-label', 'Dice showing ' + finalRoll);
+        document.getElementById('rollResult').textContent = 'Rolled ' + finalRoll;
         onRollComplete(finalRoll);
       }
     }, 90);
@@ -319,16 +275,16 @@
 
     if (diff === 0) {
       coinBalance += 30;
-      document.getElementById('resultMark').textContent = 'WIN';
+      document.getElementById('resultMark').textContent = finalRoll;
       resultTitle.textContent = "Exact match! +30 coins";
       resultSub.textContent = "Rolled " + finalRoll + " — balance: " + coinBalance + " coins";
     } else if (diff === 1) {
       coinBalance += 5;
-      document.getElementById('resultMark').textContent = 'CLOSE';
+      document.getElementById('resultMark').textContent = finalRoll;
       resultTitle.textContent = "So close! +5 coins";
       resultSub.textContent = "Rolled " + finalRoll + ", you picked " + selectedNum;
     } else {
-      document.getElementById('resultMark').textContent = 'MISS';
+      document.getElementById('resultMark').textContent = finalRoll;
       resultTitle.textContent = "No match this time";
       resultSub.textContent = "Rolled " + finalRoll + ", you picked " + selectedNum;
     }
