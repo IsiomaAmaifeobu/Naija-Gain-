@@ -17,7 +17,7 @@ radial-gradient(circle at 50% 5%,#17243a 0,#0a0f18 38%,#070b12 70%)}
 .balance{margin-left:auto;background:#111c2c;border:1px solid #26334b;border-radius:14px;padding:9px 11px;text-align:right}
 .balance b{display:block;font-size:15px;color:#e4bd54} .balance span{font-size:9px;color:#8792a5;text-transform:uppercase;letter-spacing:.8px}
 .card{border:1px solid #202c40;border-radius:26px;background:linear-gradient(180deg,#101a2a,#0b121d);padding:18px;box-shadow:0 22px 60px #0008}
-.hint{text-align:center;color:#9ba7ba;font-size:12px;margin:0 0 12px}
+.hint{text-align:center;color:#9ba7ba;font-size:12px;margin:0 0 10px}.daily{display:flex;justify-content:space-between;align-items:center;background:#0a111c;border:1px solid #202c3e;border-radius:13px;padding:9px 11px;margin-bottom:12px;font-size:10px;color:#7f8a9d}.daily b{font-size:12px;color:#f2d36a}
 .wheelbox{position:relative;width:min(82vw,340px);height:min(82vw,340px);max-width:340px;max-height:340px;margin:6px auto 18px}
 .wheel{position:absolute;inset:9px;border-radius:50%;border:10px solid #d4af37;overflow:hidden;transform:rotate(0deg);transition:transform 4.4s cubic-bezier(.12,.72,.13,1);box-shadow:0 0 0 4px #0b111b,0 18px 45px #0009}
 svg{width:100%;height:100%;display:block}
@@ -46,7 +46,7 @@ svg{width:100%;height:100%;display:block}
   </div>
 
   <div class="card">
-    <p class="hint">Tap SPIN and see where your luck lands.</p>
+    <p class="hint">Tap SPIN and see where your luck lands.</p><div class="daily"><span>DAILY SPINS</span><b id="dailyLeft">5 / 5</b></div>
     <div class="wheelbox">
       <div class="pointer"></div>
       <div class="wheel" id="wheel">
@@ -79,7 +79,7 @@ svg{width:100%;height:100%;display:block}
       <div class="stat"><b id="best">0</b><small>BEST</small></div>
     </div>
     <button class="spinbtn" id="spinBtn" onclick="spin()">SPIN THE WHEEL</button>
-    <div class="cost">Virtual coins only • no real-money wagering</div>
+    <div class="cost">5 spins available every day • virtual coins only</div>
     <div class="msg" id="msg"></div>
   </div>
   <div class="note">Naija Gain • Spin responsibly</div>
@@ -105,73 +105,118 @@ const firebaseConfig = {
   appId:"1:384942407595:web:eaa6efdb65926fd378dcee"
 };
 firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-const tg = window.Telegram?.WebApp;
+const db=firebase.database();
+const tg=window.Telegram?.WebApp;
 tg?.ready(); tg?.expand();
 
-let uid = tg?.initDataUnsafe?.user?.id ? String(tg.initDataUnsafe.user.id) : "guest_" + Math.random().toString(36).slice(2);
-let player = "tg_" + uid;
-let data = {};
-let spinning = false;
-let angle = 0;
-let spins = 0, won = 0, best = 0;
+const uid=tg?.initDataUnsafe?.user?.id ? String(tg.initDataUnsafe.user.id) : (localStorage.getItem("ngGuestId") || (()=>{const x="guest_"+Math.random().toString(36).slice(2);localStorage.setItem("ngGuestId",x);return x})());
+const player="tg_"+uid;
+const prizes=[5,10,20,50,100,25,15,2];
+const DAILY_LIMIT=5;
+let data={};
+let spinning=false;
+let angle=0;
+let spins=0,won=0,best=0,dailySpins=0,today="";
 
-const prizes = [5,10,20,50,100,25,15,2];
-
-async function load() {
-  try {
-    const s = await db.ref("users/"+player).once("value");
-    data = s.val() || {};
-    document.getElementById("balance").textContent = Number(data.coinBalance || 0).toLocaleString();
-    spins = Number(data.spinCount || 0);
-    won = Number(data.spinWon || 0);
-    best = Number(data.spinBest || 0);
-    updateStats();
-  } catch(e) { document.getElementById("msg").textContent = "Could not load your balance."; }
+function localDate(){
+  const d=new Date();
+  const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${day}`;
 }
-function updateStats(){
+function updateUI(){
+  const balance=Number(data.coinBalance||0);
+  document.getElementById("balance").textContent=balance.toLocaleString();
   document.getElementById("spins").textContent=spins;
   document.getElementById("won").textContent=won;
   document.getElementById("best").textContent=best;
+  const left=Math.max(0,DAILY_LIMIT-dailySpins);
+  document.getElementById("dailyLeft").textContent=`${left} / ${DAILY_LIMIT}`;
+  const btn=document.getElementById("spinBtn");
+  btn.disabled=spinning || left<=0;
+  if(left<=0 && !spinning){
+    btn.textContent="COME BACK TOMORROW";
+    document.getElementById("msg").textContent="You have used all 5 spins for today.";
+  }else if(!spinning){btn.textContent="SPIN THE WHEEL";}
 }
-async function save(reward){
-  const old = Number(data.coinBalance || 0);
-  data.coinBalance = old + reward;
-  data.spinCount = spins;
-  data.spinWon = won;
-  data.spinBest = best;
-  data.lastSpin = Date.now();
-  await db.ref("users/"+player).update(data);
-  document.getElementById("balance").textContent=data.coinBalance.toLocaleString();
+
+async function load(){
+  try{
+    const snap=await db.ref("users/"+player).once("value");
+    data=snap.val()||{};
+    today=localDate();
+    if(data.lastSpinDate!==today){dailySpins=0;}else{dailySpins=Number(data.dailySpinCount||0);}
+    spins=Number(data.spinCount||0);
+    won=Number(data.spinWon||0);
+    best=Number(data.spinBest||0);
+    updateUI();
+  }catch(e){document.getElementById("msg").textContent="Could not load your balance.";}
 }
+
+async function saveReward(reward){
+  const ref=db.ref("users/"+player);
+  const result=await ref.transaction(current=>{
+    current=current||{};
+    const date=localDate();
+    const count=current.lastSpinDate===date ? Number(current.dailySpinCount||0) : 0;
+    if(count>=DAILY_LIMIT) return;
+    current.coinBalance=Number(current.coinBalance||0)+reward;
+    current.spinCount=Number(current.spinCount||0)+1;
+    current.spinWon=Number(current.spinWon||0)+1;
+    current.spinBest=Math.max(Number(current.spinBest||0),reward);
+    current.dailySpinCount=count+1;
+    current.lastSpinDate=date;
+    current.lastSpinReward=reward;
+    current.lastSpin=Date.now();
+    return current;
+  });
+  if(!result.committed) throw new Error("Daily spin limit reached");
+  data=result.snapshot.val()||{};
+  dailySpins=Number(data.dailySpinCount||0);
+  spins=Number(data.spinCount||0);
+  won=Number(data.spinWon||0);
+  best=Number(data.spinBest||0);
+  updateUI();
+}
+
 function spin(){
-  if(spinning) return;
+  if(spinning || dailySpins>=DAILY_LIMIT) return;
   spinning=true;
   const btn=document.getElementById("spinBtn");
   btn.disabled=true;
   document.getElementById("msg").textContent="Spinning...";
+
+  // Pick the prize first, then calculate the exact final rotation so that
+  // the CENTER of that prize sector is directly under the fixed pointer.
   const index=Math.floor(Math.random()*prizes.length);
   const reward=prizes[index];
-  const slice=45;
-  // pointer is at the top; each segment is 45 degrees.
-  const target = 360*5 + (360 - (index*slice + slice/2));
-  angle += target;
+  const sector=45;
+  const center=index*sector + sector/2;
+  const current=((angle%360)+360)%360;
+  const needed=((360-center-current)%360+360)%360;
+  const extra=360*5 + needed;
+  angle+=extra;
   document.getElementById("wheel").style.transform=`rotate(${angle}deg)`;
+
   setTimeout(async()=>{
-    spins++; won++; best=Math.max(best,reward); updateStats();
-    try{ await save(reward); }catch(e){}
-    document.getElementById("reward").textContent="+"+reward;
-    document.getElementById("resultTitle").textContent=reward>=50?"Big win!":reward>=20?"Great spin!":"Coins won!";
-    document.getElementById("resultText").textContent=`You landed on ${reward} coins.`;
-    document.getElementById("modal").classList.add("show");
-    btn.disabled=false; spinning=false;
+    try{
+      await saveReward(reward);
+      document.getElementById("reward").textContent="+"+reward;
+      document.getElementById("resultTitle").textContent=reward>=50?"Big win!":reward>=20?"Great spin!":"Coins won!";
+      document.getElementById("resultText").textContent=`You landed exactly on ${reward} coins. Your balance has been updated.`;
+      document.getElementById("modal").classList.add("show");
+    }catch(e){
+      document.getElementById("msg").textContent="Spin could not be saved. Please try again.";
+    }finally{
+      spinning=false;
+      updateUI();
+    }
   },4500);
 }
 function closeModal(){
   document.getElementById("modal").classList.remove("show");
-  document.getElementById("msg").textContent="Ready for another spin.";
+  document.getElementById("msg").textContent=dailySpins>=DAILY_LIMIT?"Daily limit reached. Come back tomorrow.":"Ready for another spin.";
 }
 load();
 </script>
 </body>
-  </html>
+</html>
