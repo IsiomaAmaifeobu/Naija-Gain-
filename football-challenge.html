@@ -70,8 +70,16 @@ const firebaseConfig={apiKey:"AIzaSyCmT04ri3vMD0O2rxelhVvF8cn2624OdGY",authDomai
 const app=initializeApp(firebaseConfig),db=getDatabase(app),tg=window.Telegram?.WebApp||null;if(tg?.ready){try{tg.ready();tg.expand()}catch(e){}}
 function pid(){if(tg?.initDataUnsafe?.user?.id)return"tg_"+tg.initDataUnsafe.user.id;let x=localStorage.getItem("guestId");if(!x){x="guest_"+Math.random().toString(36).slice(2,10);localStorage.setItem("guestId",x)}return x}
 const player=ref(db,"players/"+pid());let coins=0;
-async function load(){try{let s=await get(player),d=s.exists()?s.val():{};coins=Number(d.coins||d.balance||0);balance.textContent=coins+" coins";sync.textContent="Progress saved to your account"}catch(e){sync.textContent="Playing offline"}}
-async function save(){try{let s=await get(player),d=s.exists()?s.val():{};await set(player,{...d,coins,lastPlayed:new Date().toISOString().slice(0,10)})}catch(e){}}
+async function load(){try{
+  let s=await get(player),d=s.exists()?s.val():{};
+  coins=Number(d.coinBalance||0);
+  // One-time migration: this game used to save under "coins"/"balance"
+  // instead of the shared "coinBalance" field. Fold any stray amount in now.
+  const stray=Number(d.coins||0)+Number(d.balance||0);
+  if(stray>0){coins+=stray;await set(player,{...d,coinBalance:coins,coins:0,balance:0})}
+  balance.textContent=coins+" coins";sync.textContent="Progress saved to your account"
+}catch(e){sync.textContent="Playing offline"}}
+async function save(){try{let s=await get(player),d=s.exists()?s.val():{};await set(player,{...d,coinBalance:coins,lastPlayed:new Date().toISOString().slice(0,10)})}catch(e){}}
 const ball=document.getElementById("ball"),keeper=document.getElementById("keeper"),goalsEl=document.getElementById("goals"),shotsEl=document.getElementById("shots"),streakEl=document.getElementById("streak"),message=document.getElementById("message"),instructions=document.getElementById("instructions"),start=document.getElementById("start"),balance=document.getElementById("balance"),sync=document.getElementById("sync");
 let active=false,goals=0,shots=5,streak=0,locked=false;
 function update(){goalsEl.textContent=goals;shotsEl.textContent=shots;streakEl.textContent=streak}
