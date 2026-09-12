@@ -2,82 +2,413 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Naija Gain — Coin Flip</title>
+<script src="https://telegram.org/js/telegram-web-app.js" defer></script>
 <style>
-:root{--bg:#052f25;--green:#0b5943;--green2:#0e6a4e;--gold:#f7c84a;--gold2:#dfa51c;--cream:#fff9e4;--muted:#b9d4ca;--line:#f7c84a35}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{margin:0;padding:16px 14px 28px;background:linear-gradient(160deg,#084835,#052d24 75%);color:var(--cream);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
-.app{max-width:430px;margin:auto}.top{display:grid;grid-template-columns:48px 1fr auto;align-items:center;gap:10px;margin-bottom:15px}
-.back{width:48px;height:48px;border:1px solid var(--line);border-radius:16px;background:#ffffff08;color:#fff;font-size:28px}.title{text-align:center;font-size:13px;font-weight:950;letter-spacing:.08em}
-.balance{display:flex;align-items:center;gap:7px;padding:9px 12px;border:1px solid var(--line);border-radius:999px;background:#ffffff06;font-size:13px;font-weight:900}.coin{width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 30% 24%,#fff8bb 0 10%,#f7cb4e 39%,#c78912 85%);box-shadow:0 0 12px #f7c84a55}
-.hero{text-align:center}.brand{font-size:31px;font-weight:950;letter-spacing:-1.3px}.brand span{color:var(--gold)}.tag{color:var(--muted);font-size:14px;margin:5px 0 7px}.sync{color:#b9d4ca99;font-size:11px;margin-bottom:14px}
-.card{border:1px solid var(--line);border-radius:28px;padding:15px 14px 19px;background:linear-gradient(180deg,#0c5b45ed,#06392cd9);box-shadow:0 18px 50px #0003}
-.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:13px}.stat{text-align:center;padding:10px 5px;border-radius:14px;border:1px solid #f7c84a1e;background:#ffffff06}.stat b{display:block;color:var(--gold);font-size:19px}.stat span{font-size:9px;color:var(--muted);font-weight:850}
-.stage{height:390px;position:relative;overflow:hidden;border-radius:23px;border:1px solid #f7c84a2c;background:radial-gradient(circle at 50% 45%,#16704f,#073b2d 70%);display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 60px #0003}
-.stage:before{content:"";position:absolute;width:290px;height:290px;border-radius:50%;border:1px solid #f7c84a18;box-shadow:0 0 0 28px #f7c84a06,0 0 0 56px #f7c84a03}
-.flip-area{position:relative;width:190px;height:190px;perspective:1000px;z-index:2}.coin3d{position:absolute;inset:0;border-radius:50%;transform-style:preserve-3d;transition:transform 1s cubic-bezier(.17,.67,.18,1);filter:drop-shadow(0 17px 14px #0006);cursor:pointer}
-.coin-face{position:absolute;inset:0;border-radius:50%;backface-visibility:hidden;background:radial-gradient(circle at 31% 23%,#fff7b5 0 6%,#f7d35e 21%,#dca21e 62%,#9d6a08 100%);border:8px solid #e0a51e;box-shadow:inset 5px 5px 10px #fff7a955,inset -8px -9px 13px #7b500b55,0 0 0 2px #76510e}
-.coin-face:after{content:"";position:absolute;inset:15px;border-radius:50%;border:2px solid #8c650e99;box-shadow:inset 0 0 0 5px #fbe37c66}
-.coin-back{transform:rotateY(180deg)}
-.emblem{position:absolute;inset:0;display:grid;place-items:center;z-index:2;color:#6e4d08;font-weight:950;text-align:center}
-.ng{font-size:60px;letter-spacing:-6px;line-height:1;text-shadow:1px 2px #fff5a766}.side{font-size:17px;letter-spacing:.16em;margin-top:4px}
-.edge{position:absolute;inset:0;border-radius:50%;transform:translateZ(-5px);background:repeating-linear-gradient(90deg,#8c5d07 0 2px,#f0bf3b 2px 4px);box-shadow:inset 0 0 7px #543505}
-.spin{animation:coinSpin .95s ease-in-out}
-@keyframes coinSpin{0%{transform:rotateY(0)}50%{transform:rotateY(900deg) scale(1.04)}100%{transform:rotateY(1800deg)}}
-.ready{position:absolute;top:18px;left:0;right:0;text-align:center;color:#dce9e3;font-size:12px;font-weight:800;z-index:4}.result{position:absolute;bottom:18px;left:0;right:0;text-align:center;color:var(--muted);font-size:13px;font-weight:800;z-index:4}
-.choices{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:13px}.choice{height:48px;border:1px solid #f7c84a30;border-radius:14px;background:#ffffff07;color:var(--cream);font-weight:950}.choice.active{border-color:var(--gold);background:#f7c84a18;box-shadow:0 0 0 2px #f7c84a20}
-.action{width:100%;height:52px;margin-top:11px;border:0;border-radius:16px;background:linear-gradient(180deg,#ffdc69,#e1a81d);color:#352500;font-weight:950;font-size:16px;box-shadow:0 5px 0 #98690a,0 12px 22px #0003}.action:disabled{opacity:.45}
-.message{text-align:center;min-height:21px;margin-top:10px;color:var(--muted);font-size:13px;font-weight:750}.note{text-align:center;font-size:10px;color:#b9d4ca88;line-height:1.45;margin-top:10px}.backlink{display:block;text-align:center;color:var(--gold);font-weight:900;text-decoration:none;margin-top:17px;font-size:14px}
-.overlay{position:fixed;inset:0;background:#021811cc;backdrop-filter:blur(7px);display:flex;align-items:center;justify-content:center;padding:22px;opacity:0;pointer-events:none;transition:.2s;z-index:20}.overlay.show{opacity:1;pointer-events:auto}.modal{width:min(340px,100%);border:1px solid #f7c84a55;border-radius:25px;background:linear-gradient(180deg,#0d5b45,#06372a);padding:27px 22px 23px;text-align:center;box-shadow:0 25px 70px #0008}.miniCoin{width:62px;height:62px;border-radius:50%;margin:auto;background:radial-gradient(circle at 30% 24%,#fff6b0,#f4c641 40%,#b7790b);border:5px solid #dda51e;display:grid;place-items:center;color:#76520b;font-size:23px;font-weight:950}.modal h2{color:var(--gold);margin:12px 0 7px}.modal p{color:var(--muted);font-size:14px;line-height:1.5;margin:0 0 18px}.close{border:0;border-radius:13px;padding:12px 30px;background:var(--gold);font-weight:950;color:#392800}
+  :root{
+    --bg-deep: #0B3D2E;
+    --bg-deep2: #0F4D3A;
+    --gold: #FFC93C;
+    --gold-dark: #D9A02B;
+    --cream: #FBF3DC;
+    --red: #E4572E;
+    --muted: #B9D9C9;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; min-height:100vh;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background: radial-gradient(circle at 50% 0%, var(--bg-deep2), var(--bg-deep) 70%);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--cream);
+    padding: 24px 16px 40px;
+    overflow-x:hidden;
+  }
+  .brand{ font-size: 28px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 2px; text-align:center; }
+  .brand span{ color: var(--gold); }
+  .tagline{ font-size: 13px; color: var(--muted); margin-bottom: 22px; text-align:center; }
+  .balance{
+    display:flex; align-items:center; gap:8px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,201,60,0.35);
+    padding: 8px 18px; border-radius: 999px;
+    margin-bottom: 8px; font-weight:700; font-size: 15px;
+  }
+  .coin-dot{
+    width:18px;height:18px;border-radius:50%;
+    background: radial-gradient(circle at 35% 30%, #FFE9A8, var(--gold) 60%, var(--gold-dark));
+    box-shadow: 0 0 8px rgba(255,201,60,0.6);
+  }
+  .sync-note{ font-size: 11px; color: rgba(185,217,201,0.7); margin-bottom: 24px; text-align:center; }
+
+  .coin-wrap{
+    width: 140px; height: 140px;
+    border-radius: 50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size: 60px;
+    background: radial-gradient(circle at 35% 30%, #FFE9A8, var(--gold) 60%, var(--gold-dark));
+    box-shadow: 0 12px 28px rgba(0,0,0,0.4), inset 0 -6px 10px rgba(0,0,0,0.15);
+    margin-bottom: 8px;
+    color: #3a2a06;
+    font-weight: 800;
+    border: 4px solid #fff6d6;
+    transition: transform 0.08s ease, background 0.05s ease;
+  }
+  .coin-wrap.side-tails{
+    background: radial-gradient(circle at 35% 30%, #ffffff, #d7dde2 60%, #9aa4ad);
+    color: #2b3238;
+    border-color: #eef1f3;
+  }
+  .coin-wrap.flipping{ animation: flip 0.3s infinite; }
+  @keyframes flip{
+    0%{ transform: scaleX(1); }
+    50%{ transform: scaleX(0.15); }
+    100%{ transform: scaleX(1); }
+  }
+  .coin-caption{
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--muted);
+    margin-bottom: 22px;
+    letter-spacing: 0.04em;
+  }
+
+  .pick-label{ font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+  .side-picker{ display:flex; gap:10px; margin-bottom: 22px; }
+  .side-btn{
+    appearance:none; border:none; cursor:pointer;
+    padding: 10px 22px; border-radius: 999px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,201,60,0.3);
+    color: var(--cream); font-weight:800; font-size: 14px;
+  }
+  .side-btn.selected{
+    background: linear-gradient(180deg, #F6D46B, var(--gold-dark));
+    color: #3a2a06; border-color: transparent;
+  }
+
+  .stake-label{ font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+  .stake-picker{ display:flex; gap:8px; margin-bottom: 26px; flex-wrap:wrap; justify-content:center; }
+  .stake-btn{
+    appearance:none; border:none; cursor:pointer;
+    padding: 9px 16px; border-radius: 12px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,201,60,0.3);
+    color: var(--cream); font-weight:700; font-size: 13px;
+  }
+  .stake-btn.selected{
+    background: linear-gradient(180deg, #F6D46B, var(--gold-dark));
+    color: #3a2a06; border-color: transparent;
+  }
+  .stake-btn:disabled{ opacity:0.35; cursor:default; }
+
+  .custom-stake-input{
+    display:block;
+    width: 220px;
+    margin: 0 auto 26px;
+    text-align:center;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,201,60,0.3);
+    color: var(--cream);
+    font-size: 14px;
+    font-weight:700;
+  }
+  .custom-stake-input::placeholder{ color: rgba(185,217,201,0.6); font-weight:400; }
+  .custom-stake-input:focus{ outline:none; border-color: var(--gold); }
+
+  .flip-btn{
+    appearance:none; border:none; cursor:pointer;
+    background: linear-gradient(180deg, #F6D46B, var(--gold-dark));
+    color: #3a2a06; font-weight:800; font-size:17px; letter-spacing:0.02em;
+    padding: 14px 46px; border-radius: 999px;
+    box-shadow: 0 4px 0 #8f6a13, 0 10px 20px rgba(0,0,0,0.35);
+    transition: transform 0.08s ease;
+  }
+  .flip-btn:active{ transform: translateY(3px); box-shadow: 0 1px 0 #8f6a13, 0 4px 10px rgba(0,0,0,0.35); }
+  .flip-btn:disabled{ opacity:0.55; cursor:default; }
+
+  .stake-note{ margin-top: 14px; font-size: 13px; color: var(--muted); text-align:center; }
+  .back-link{ margin-top: 22px; font-size: 13px; color: var(--gold); text-decoration:none; }
+
+  .result{
+    position:fixed; inset:0;
+    background: rgba(6,20,15,0.72);
+    display:flex; align-items:center; justify-content:center;
+    opacity:0; pointer-events:none;
+    transition: opacity 0.25s ease;
+    z-index: 20;
+  }
+  .result.show{ opacity:1; pointer-events:auto; }
+  .result-card{
+    background: linear-gradient(180deg, var(--bg-deep2), var(--bg-deep));
+    border: 2px solid var(--gold); border-radius: 20px;
+    padding: 32px 28px; text-align:center; max-width: 280px;
+    transform: scale(0.85); transition: transform 0.25s ease;
+  }
+  .result.show .result-card{ transform: scale(1); }
+  .result-emoji{ font-size:44px; margin-bottom:6px; }
+  .result-title{ font-size:20px; font-weight:800; color:var(--gold); margin-bottom:4px; }
+  .result-sub{ font-size:13px; color:var(--muted); margin-bottom:20px; }
+  .result-close{
+    appearance:none; border:none; cursor:pointer;
+    background: var(--gold); color:#3a2a06; font-weight:700;
+    padding: 10px 28px; border-radius: 999px; font-size:14px;
+  }
 </style>
 </head>
 <body>
-<div class="app">
-<header class="top"><button class="back" onclick="history.back()">‹</button><div class="title">COIN FLIP</div><div class="balance"><span class="coin"></span><span id="balance">0 coins</span></div></header>
-<section class="hero"><div class="brand">Naija <span>Gain</span></div><div class="tag">Call it right. Flip it. Earn your reward.</div><div class="sync" id="sync">Loading your saved progress...</div></section>
-<main class="card">
-<div class="stats"><div class="stat"><b id="wins">0</b><span>WINS</span></div><div class="stat"><b id="flips">0</b><span>FLIPS</span></div><div class="stat"><b id="streak">0</b><span>STREAK</span></div></div>
-<div class="stage">
-<div class="ready" id="ready">Choose Heads or Tails</div>
-<div class="flip-area"><div class="coin3d" id="coin3d"><div class="coin-face"><div class="emblem"><div><div class="ng">NG</div><div class="side">HEADS</div></div></div></div><div class="coin-face coin-back"><div class="emblem"><div><div class="ng">★</div><div class="side">TAILS</div></div></div></div><div class="edge"></div></div></div>
-<div class="result" id="result">Your call will appear here.</div>
-</div>
-<div class="choices"><button class="choice" data-call="heads">HEADS</button><button class="choice" data-call="tails">TAILS</button></div>
-<button class="action" id="flip" disabled>Flip Coin</button>
-<div class="message" id="message">Pick a side before you flip.</div>
-<div class="note">Correct calls earn coins. The result is generated after your selection.</div>
-</main>
-<a class="backlink" href="index.html">← Back to games</a>
-</div>
-<div class="overlay" id="overlay"><div class="modal"><div class="miniCoin">NG</div><h2 id="modalTitle">Nice call!</h2><p id="modalText"></p><button class="close" id="close">Continue</button></div></div>
+
+  <div class="brand">Naija <span>Gain</span></div>
+  <div class="tagline">Call it right. Double your stake.</div>
+
+  <div class="balance"><span class="coin-dot"></span><span id="balanceText">Loading...</span></div>
+  <div class="sync-note" id="syncNote">Loading your saved progress...</div>
+
+  <div class="coin-wrap" id="coinFace">H</div>
+  <div class="coin-caption" id="coinCaption">HEADS</div>
+
+  <div class="pick-label">Heads or Tails?</div>
+  <div class="side-picker" id="sidePicker">
+    <button class="side-btn" data-side="heads">Heads</button>
+    <button class="side-btn" data-side="tails">Tails</button>
+  </div>
+
+  <div class="stake-label">Stake how many coins?</div>
+  <div class="stake-picker" id="stakePicker">
+    <button class="stake-btn" data-stake="5">5</button>
+    <button class="stake-btn" data-stake="10">10</button>
+    <button class="stake-btn" data-stake="25">25</button>
+    <button class="stake-btn" data-stake="50">50</button>
+  </div>
+  <input type="number" id="customStake" class="custom-stake-input" placeholder="Or type a custom amount" min="1" inputmode="numeric">
+
+  <button class="flip-btn" id="flipBtn" disabled>Flip the Coin</button>
+  <div class="stake-note" id="stakeNote">Loading...</div>
+  <a href="index.html" class="back-link">← Back to games</a>
+
+  <div class="result" id="resultOverlay">
+    <div class="result-card">
+      <div class="result-emoji" id="resultEmoji">🎉</div>
+      <div class="result-title" id="resultTitle">You won!</div>
+      <div class="result-sub" id="resultSub"></div>
+      <button class="result-close" id="resultClose">Nice!</button>
+    </div>
+  </div>
+
 <script type="module">
-import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import{getDatabase,ref,get,set}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-const firebaseConfig={apiKey:"AIzaSyCmT04ri3vMD0O2rxelhVvF8cn2624OdGY",authDomain:"naija-gain.firebaseapp.com",databaseURL:"https://naija-gain-default-rtdb.europe-west1.firebasedatabase.app",projectId:"naija-gain",storageBucket:"naija-gain.firebasestorage.app",messagingSenderId:"384942407595",appId:"1:384942407595:web:eaa6efdb65926fd378dcee"};
-const app=initializeApp(firebaseConfig),db=getDatabase(app),tg=window.Telegram?.WebApp||null;if(tg?.ready){try{tg.ready();tg.expand()}catch(e){}}
-function pid(){if(tg?.initDataUnsafe?.user?.id)return"tg_"+tg.initDataUnsafe.user.id;let x=localStorage.getItem("guestId");if(!x){x="guest_"+Math.random().toString(36).slice(2,10);localStorage.setItem("guestId",x)}return x}
-const player=ref(db,"players/"+pid());let coins=0;
-async function load(){try{let s=await get(player),d=s.exists()?s.val():{};coins=Number(d.coinBalance||0);balance.textContent=coins+" coins";sync.textContent="Progress saved to your account"}catch(e){sync.textContent="Playing offline"}}
-async function save(){try{let s=await get(player),d=s.exists()?s.val():{};await set(player,{...d,coinBalance:coins,lastPlayed:new Date().toISOString().slice(0,10)})}catch(e){}}
-const balance=document.getElementById("balance"),sync=document.getElementById("sync"),coin=document.getElementById("coin3d"),flipBtn=document.getElementById("flip"),message=document.getElementById("message"),ready=document.getElementById("ready"),result=document.getElementById("result"),winsEl=document.getElementById("wins"),flipsEl=document.getElementById("flips"),streakEl=document.getElementById("streak");
-let call="",busy=false,wins=0,flips=0,streak=0;
-document.querySelectorAll(".choice").forEach(b=>b.onclick=()=>{if(busy)return;call=b.dataset.call;document.querySelectorAll(".choice").forEach(x=>x.classList.remove("active"));b.classList.add("active");flipBtn.disabled=false;ready.textContent=`You called ${call.toUpperCase()}`;message.textContent="Ready when you are."});
-flipBtn.onclick=async()=>{
- if(!call||busy)return;busy=true;flipBtn.disabled=true;document.querySelectorAll(".choice").forEach(x=>x.disabled=true);ready.textContent="Flipping…";message.textContent="The coin is in the air.";result.textContent="";
- const outcome=Math.random()<.5?"heads":"tails";coin.classList.remove("spin");void coin.offsetWidth;coin.classList.add("spin");
- setTimeout(async()=>{
-   if(outcome==="tails")coin.style.transform="rotateY(180deg)";else coin.style.transform="rotateY(0deg)";
-   flips++;const won=call===outcome;if(won){wins++;streak++;message.textContent="Correct call! +5 coins";result.textContent=`${outcome.toUpperCase()} — YOU WIN`;coins+=5;balance.textContent=coins+" coins";await save()}else{streak=0;message.textContent=`It was ${outcome.toUpperCase()}.`;result.textContent=`${outcome.toUpperCase()} — TRY AGAIN`}
-   winsEl.textContent=wins;flipsEl.textContent=flips;streakEl.textContent=streak;
-   document.getElementById("modalTitle").textContent=won?"You called it!":"Not this time";
-   document.getElementById("modalText").textContent=won?"The coin landed on "+outcome+". You earned +5 coins.":"You called "+call+", but it landed on "+outcome+".";
-   document.getElementById("overlay").classList.add("show");
-   busy=false;document.querySelectorAll(".choice").forEach(x=>x.disabled=false);
- },1050);
-};
-document.getElementById("close").onclick=()=>{document.getElementById("overlay").classList.remove("show");call="";document.querySelectorAll(".choice").forEach(x=>x.classList.remove("active"));flipBtn.disabled=true;ready.textContent="Choose Heads or Tails";message.textContent="Pick a side before you flip."};
-load().catch(()=>{});
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCmT04ri3vMD0O2rxelhVvF8cn2624OdGY",
+    authDomain: "naija-gain.firebaseapp.com",
+    databaseURL: "https://naija-gain-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "naija-gain",
+    storageBucket: "naija-gain.firebasestorage.app",
+    messagingSenderId: "384942407595",
+    appId: "1:384942407595:web:eaa6efdb65926fd378dcee"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  const tg = window.Telegram ? window.Telegram.WebApp : null;
+  if (tg && tg.ready) { try { tg.ready(); tg.expand(); } catch(e){} }
+
+  function getPlayerId(){
+    if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) {
+      return "tg_" + tg.initDataUnsafe.user.id;
+    }
+    let guestId = localStorage.getItem('guestId');
+    if (!guestId) {
+      guestId = "guest_" + Math.random().toString(36).slice(2, 10);
+      try { localStorage.setItem('guestId', guestId); } catch(e){}
+    }
+    return guestId;
+  }
+  const playerId = getPlayerId();
+  const playerRef = ref(db, 'players/' + playerId);
+
+  function withTimeout(promise, fallbackValue, ms = 4000){
+    return Promise.race([
+      promise,
+      new Promise((resolve) => setTimeout(() => resolve(fallbackValue), ms))
+    ]);
+  }
+
+  async function dbLoad(){
+    try {
+      const snapshot = await withTimeout(get(playerRef), null, 4000);
+      if (snapshot && snapshot.exists && snapshot.exists()) return snapshot.val();
+      return null;
+    } catch(e) { return null; }
+  }
+
+  async function dbSave(patch){
+    try {
+      const current = await dbLoad();
+      const merged = Object.assign({}, current || {}, patch);
+      await withTimeout(set(playerRef, merged), undefined, 4000);
+    } catch(e) { /* save failed silently — next flip will try again */ }
+  }
+
+  let coinBalance = 0;
+  let selectedSide = null;
+  let selectedStake = null;
+  let flipping = false;
+
+  const balanceText = document.getElementById('balanceText');
+  const syncNote = document.getElementById('syncNote');
+  const coinFace = document.getElementById('coinFace');
+  const coinCaption = document.getElementById('coinCaption');
+  const sidePicker = document.getElementById('sidePicker');
+  const stakePicker = document.getElementById('stakePicker');
+  const customStake = document.getElementById('customStake');
+  const flipBtn = document.getElementById('flipBtn');
+  const stakeNote = document.getElementById('stakeNote');
+  const resultOverlay = document.getElementById('resultOverlay');
+  const resultEmoji = document.getElementById('resultEmoji');
+  const resultTitle = document.getElementById('resultTitle');
+  const resultSub = document.getElementById('resultSub');
+  const resultClose = document.getElementById('resultClose');
+
+  function setCoinFace(side){
+    coinFace.textContent = side === "heads" ? "H" : "T";
+    coinCaption.textContent = side === "heads" ? "HEADS" : "TAILS";
+    coinFace.classList.toggle('side-tails', side === "tails");
+  }
+
+  function updateHUD(){
+    balanceText.textContent = coinBalance + " coins";
+
+    document.querySelectorAll('.stake-btn').forEach(btn => {
+      const amt = parseInt(btn.dataset.stake, 10);
+      btn.disabled = amt > coinBalance;
+      if (amt > coinBalance && btn.classList.contains('selected')) {
+        btn.classList.remove('selected');
+        selectedStake = null;
+      }
+    });
+    customStake.max = coinBalance;
+
+    if (coinBalance < 1) {
+      stakeNote.textContent = "You need coins to play — go earn some on Spin or Dice.";
+    } else {
+      const rawCustom = parseInt(customStake.value, 10);
+      if (customStake.value && !isNaN(rawCustom) && rawCustom > coinBalance) {
+        stakeNote.textContent = "You only have " + coinBalance + " coins — lower your stake.";
+      } else {
+        stakeNote.textContent = "Winning doubles your stake. Losing forfeits it.";
+      }
+    }
+
+    flipBtn.disabled = flipping || selectedSide === null || selectedStake === null || selectedStake > coinBalance;
+  }
+
+  async function loadProgress(){
+    try {
+      const data = await dbLoad();
+      coinBalance = (data && typeof data.coinBalance === 'number') ? data.coinBalance : 0;
+      syncNote.textContent = "Progress saved to your account — same on every device";
+    } catch(e) {
+      coinBalance = 0;
+      syncNote.textContent = "Couldn't load saved progress — starting fresh";
+    }
+    updateHUD();
+  }
+
+  sidePicker.addEventListener('click', (e) => {
+    const btn = e.target.closest('.side-btn');
+    if (!btn || flipping) return;
+    selectedSide = btn.dataset.side;
+    document.querySelectorAll('.side-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    updateHUD();
+  });
+
+  stakePicker.addEventListener('click', (e) => {
+    const btn = e.target.closest('.stake-btn');
+    if (!btn || flipping || btn.disabled) return;
+    selectedStake = parseInt(btn.dataset.stake, 10);
+    customStake.value = "";
+    document.querySelectorAll('.stake-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    updateHUD();
+  });
+
+  customStake.addEventListener('input', () => {
+    if (flipping) return;
+    document.querySelectorAll('.stake-btn').forEach(b => b.classList.remove('selected'));
+
+    const raw = parseInt(customStake.value, 10);
+    if (!customStake.value || isNaN(raw) || raw < 1) {
+      selectedStake = null;
+    } else if (raw > coinBalance) {
+      selectedStake = null; // too high — leave button disabled until they lower it
+    } else {
+      selectedStake = raw;
+    }
+    updateHUD();
+  });
+
+  function flip(){
+    if (flipping || selectedSide === null || selectedStake === null || selectedStake > coinBalance) return;
+    flipping = true;
+    flipBtn.disabled = true;
+    coinFace.classList.add('flipping');
+
+    let ticks = 0;
+    const maxTicks = 12;
+    const interval = setInterval(() => {
+      coinFace.textContent = Math.random() < 0.5 ? "H" : "T";
+      coinFace.classList.toggle('side-tails', coinFace.textContent === "T");
+      ticks++;
+      if (ticks >= maxTicks) {
+        clearInterval(interval);
+        const outcome = Math.random() < 0.5 ? "heads" : "tails";
+        setCoinFace(outcome);
+        coinFace.classList.remove('flipping');
+        onFlipComplete(outcome);
+      }
+    }, 90);
+  }
+
+  async function onFlipComplete(outcome){
+    const won = outcome === selectedSide;
+
+    if (won) {
+      coinBalance += selectedStake;
+      resultEmoji.textContent = "🏆";
+      resultTitle.textContent = "You won " + selectedStake + " coins!";
+      resultSub.textContent = "It landed on " + outcome + " — balance: " + coinBalance + " coins";
+    } else {
+      coinBalance -= selectedStake;
+      resultEmoji.textContent = "💔";
+      resultTitle.textContent = "Lost " + selectedStake + " coins";
+      resultSub.textContent = "It landed on " + outcome + " — balance: " + coinBalance + " coins";
+    }
+
+    await dbSave({ coinBalance: coinBalance });
+    flipping = false;
+    selectedStake = null;
+    customStake.value = "";
+    document.querySelectorAll('.stake-btn').forEach(b => b.classList.remove('selected'));
+    updateHUD();
+    resultOverlay.classList.add('show');
+  }
+
+  resultClose.addEventListener('click', () => {
+    resultOverlay.classList.remove('show');
+    updateHUD();
+  });
+
+  flipBtn.addEventListener('click', flip);
+
+  loadProgress();
 </script>
+
 </body>
 </html>
