@@ -241,6 +241,8 @@
 
   const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.NoToneMapping;
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
@@ -264,44 +266,17 @@
   fillLight.position.set(-3, -1, 2);
   scene.add(fillLight);
 
-  // Draw a coin face onto a canvas, used as a texture
-  function makeFaceTexture(label, sublabel){
-    const size = 512;
-    const c = document.createElement('canvas');
-    c.width = size; c.height = size;
-    const ctx = c.getContext('2d');
-
-    const grad = ctx.createRadialGradient(size*0.35, size*0.3, size*0.05, size*0.5, size*0.5, size*0.55);
-    grad.addColorStop(0, '#FFE9A8');
-    grad.addColorStop(0.55, '#FFC93C');
-    grad.addColorStop(1, '#B9821F');
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(size/2, size/2, size/2 - 6, 0, Math.PI*2);
-    ctx.fill();
-
-    ctx.strokeStyle = '#3a2a06';
-    ctx.lineWidth = 10;
-    ctx.beginPath();
-    ctx.arc(size/2, size/2, size/2 - 22, 0, Math.PI*2);
-    ctx.stroke();
-
-    ctx.fillStyle = '#3a2a06';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.font = 'bold 190px sans-serif';
-    ctx.fillText(label, size/2, size/2 - 10);
-
-    ctx.font = 'bold 34px sans-serif';
-    ctx.fillText(sublabel, size/2, size/2 + 130);
-
-    const tex = new THREE.CanvasTexture(c);
-    tex.needsUpdate = true;
+  // Coin face images — your actual logo art, used exactly as designed
+  // (no scene lighting applied to these, so they stay bright and true to the source image).
+  const textureLoader = new THREE.TextureLoader();
+  function loadFaceTexture(url){
+    const tex = textureLoader.load(url);
+    tex.colorSpace = THREE.SRGBColorSpace;
     return tex;
   }
 
-  const headsTexture = makeFaceTexture('H', 'NAIJA GAIN');
-  const tailsTexture = makeFaceTexture('T', 'NAIJA GAIN');
+  const headsTexture = loadFaceTexture('coin-heads.png');
+  const tailsTexture = loadFaceTexture('coin-tails.png');
 
   const coin = new THREE.Group();
 
@@ -313,16 +288,17 @@
   const edge = new THREE.Mesh(edgeGeometry, sideMaterial);
   coin.add(edge);
 
-  // Front face (heads) — a flat disc facing the camera at rest (+Z), with
-  // a plain, predictable UV mapping so the text always sits upright.
-  const headsMaterial = new THREE.MeshStandardMaterial({ map: headsTexture, metalness: 0.4, roughness: 0.35, side: THREE.DoubleSide });
+  // Front face (heads) — a flat disc facing the camera at rest (+Z).
+  // MeshBasicMaterial ignores scene lighting, so your logo shows at full
+  // brightness exactly as designed instead of being dimmed.
+  const headsMaterial = new THREE.MeshBasicMaterial({ map: headsTexture, side: THREE.DoubleSide });
   const frontDisc = new THREE.Mesh(new THREE.CircleGeometry(1, 56), headsMaterial);
   frontDisc.position.z = 0.11;
   coin.add(frontDisc);
 
   // Back face (tails) — same disc, mounted facing the other way. When the
   // coin flips 180°, this rotates around to face the camera right-side up.
-  const tailsMaterial = new THREE.MeshStandardMaterial({ map: tailsTexture, metalness: 0.4, roughness: 0.35, side: THREE.DoubleSide });
+  const tailsMaterial = new THREE.MeshBasicMaterial({ map: tailsTexture, side: THREE.DoubleSide });
   const backDisc = new THREE.Mesh(new THREE.CircleGeometry(1, 56), tailsMaterial);
   backDisc.position.z = -0.11;
   backDisc.rotation.y = Math.PI;
