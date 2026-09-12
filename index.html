@@ -7,6 +7,7 @@
 <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src='//libtl.com/sdk.js' data-zone='11771755' data-sdk='show_11771755'></script>
 <style>
 :root{--bg:#071019;--panel:#0d1724;--panel2:#111f30;--gold:#d4af37;--gold2:#f2d36a;--text:#f7f8fb;--muted:#91a0b5;--line:#223148}
 *{box-sizing:border-box}body{margin:0;background:#04080d;color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif}
@@ -26,6 +27,13 @@
 .row{display:flex;justify-content:space-between;padding:13px 2px;border-bottom:1px solid #1d2a3c;font-size:13px}.row span:first-child{color:var(--muted)}
 .bottom{position:fixed;bottom:0;left:0;right:0;z-index:20;display:flex;background:#08111cdd;backdrop-filter:blur(12px);border-top:1px solid #25354b;padding:8px 0 max(8px,env(safe-area-inset-bottom))}
 .nav{flex:1;border:0;background:none;color:#75849a;font-size:10px;font-weight:700;padding:6px 0;display:flex;flex-direction:column;align-items:center;gap:4px}.nav svg{width:20px;height:20px}.nav.active{color:var(--gold)}
+.task{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border:1px solid #26364d;border-radius:16px;background:linear-gradient(180deg,#101b2a,#0b131f);margin-bottom:10px}
+.task-name{font-weight:800;font-size:13px}.task-reward{color:var(--gold);font-size:11px;font-weight:700;margin-top:2px}
+.task-btn{border:0;border-radius:12px;padding:10px 16px;font-weight:900;font-size:12px;cursor:pointer}
+.task-btn.watch{background:linear-gradient(180deg,#f2d36a,#d4af37);color:#171207}
+.task-btn.done{background:#16261c;color:#5fd48a}
+.task-btn.locked{background:#152030;color:#4c5c72}
+.task-btn:disabled{cursor:default}
 </style>
 </head>
 <body>
@@ -48,7 +56,14 @@
 
 <section class="page" id="wallet"><div class="card center"><div class="big" id="walletBalance">...</div><div class="muted">virtual coins</div></div><div class="card muted">Coins are earned through games and tasks. Withdrawals are not currently enabled.</div></section>
 <section class="page" id="refer"><div class="card center"><div class="big" id="refCount">...</div><div class="muted">friends referred</div></div><div class="card"><div class="muted">Your referral link</div><input id="refLink" readonly style="width:100%;margin:10px 0;padding:12px;border-radius:12px;border:1px solid #26364d;background:#09121e;color:#fff"><button id="copy" style="width:100%;padding:12px;border:0;border-radius:12px;background:#d4af37;font-weight:900">Copy Link</button></div></section>
-<section class="page" id="earn"><div class="card center"><div class="big" id="ads">0 / 5</div><div class="muted">ads watched today</div></div><div class="card muted">Daily ad tasks remain available from the Earn section.</div></section>
+
+<section class="page" id="earn">
+<div class="card center"><div class="big" id="adsProgress">0 / 5</div><div class="muted">ads watched today</div></div>
+<div class="label">Today's Tasks</div>
+<div id="taskList"></div>
+<div class="card muted" id="earnNote">Watch a short ad to earn coins. Rewards get bigger with each ad, and the count resets every day.</div>
+</section>
+
 <section class="page" id="profile"><div class="card"><div class="row"><span>Player ID</span><span id="pid">...</span></div><div class="row"><span>Coin balance</span><span id="pbal">...</span></div><div class="row"><span>Friends referred</span><span id="pref">...</span></div></div></section>
 </div>
 
@@ -65,7 +80,66 @@ const firebaseConfig={apiKey:"AIzaSyCmT04ri3vMD0O2rxelhVvF8cn2624OdGY",authDomai
 firebase.initializeApp(firebaseConfig);const db=firebase.database();const tg=window.Telegram?.WebApp;tg?.ready();tg?.expand();
 function getPlayerId(){if(tg?.initDataUnsafe?.user?.id)return"tg_"+tg.initDataUnsafe.user.id;let id=localStorage.getItem("guestId");if(!id){id="guest_"+Math.random().toString(36).slice(2,10);localStorage.setItem("guestId",id)}return id}
 const playerId=getPlayerId(), playerRef=db.ref("players/"+playerId);
-async function load(){try{const s=await playerRef.once("value"),d=s.val()||{},b=Number(d.coinBalance||0),r=Number(d.referralCount||0);document.getElementById("topBalance").textContent=b.toLocaleString();document.getElementById("walletBalance").textContent=b.toLocaleString();document.getElementById("pbal").textContent=b.toLocaleString();document.getElementById("refCount").textContent=r;document.getElementById("pref").textContent=r;document.getElementById("pid").textContent=playerId.length>16?playerId.slice(0,13)+"…":playerId;document.getElementById("refLink").value="https://t.me/NaijaGain_bot?startapp="+playerId;document.getElementById("ads").textContent=Number(d.adsWatchedToday||0)+" / 5"}catch(e){}}
+
+const AD_REWARDS=[5,10,15,20,25];
+const todayStr=()=>new Date().toISOString().slice(0,10);
+
+function renderEarnTab(d){
+  const watched=(d.adDate===todayStr())?Number(d.adsWatchedToday||0):0;
+  document.getElementById("adsProgress").textContent=watched+" / "+AD_REWARDS.length;
+  const list=document.getElementById("taskList");
+  list.innerHTML="";
+  AD_REWARDS.forEach((reward,i)=>{
+    const row=document.createElement("div");
+    row.className="task";
+    const btn=document.createElement("button");
+    if(i<watched){
+      btn.className="task-btn done";btn.textContent="Watched";btn.disabled=true;
+    }else if(i===watched){
+      btn.className="task-btn watch";btn.textContent="Watch Ad";
+      btn.onclick=()=>watchAd(i,reward,btn);
+    }else{
+      btn.className="task-btn locked";btn.textContent="Locked";btn.disabled=true;
+    }
+    row.innerHTML=`<div><div class="task-name">Ad ${i+1} of ${AD_REWARDS.length}</div><div class="task-reward">+${reward} coins</div></div>`;
+    row.appendChild(btn);
+    list.appendChild(row);
+  });
+}
+
+async function watchAd(index,reward,btn){
+  const note=document.getElementById("earnNote");
+  btn.disabled=true;btn.textContent="Loading ad...";
+  try{
+    await show_11771755();
+    const s=await playerRef.once("value");
+    const d=s.val()||{};
+    const today=todayStr();
+    const watchedNow=(d.adDate===today)?Number(d.adsWatchedToday||0):0;
+    if(watchedNow!==index){await load();return}
+    const newBalance=Number(d.coinBalance||0)+reward;
+    await playerRef.update({coinBalance:newBalance,adsWatchedToday:watchedNow+1,adDate:today});
+    note.textContent=`+${reward} coins added! Keep going.`;
+    await load();
+  }catch(e){
+    btn.disabled=false;btn.textContent="Watch Ad";
+    note.textContent="The ad didn't load. Check your connection and try again.";
+  }
+}
+
+async function load(){
+  try{
+    const s=await playerRef.once("value"),d=s.val()||{},b=Number(d.coinBalance||0),r=Number(d.referralCount||0);
+    document.getElementById("topBalance").textContent=b.toLocaleString();
+    document.getElementById("walletBalance").textContent=b.toLocaleString();
+    document.getElementById("pbal").textContent=b.toLocaleString();
+    document.getElementById("refCount").textContent=r;
+    document.getElementById("pref").textContent=r;
+    document.getElementById("pid").textContent=playerId.length>16?playerId.slice(0,13)+"…":playerId;
+    document.getElementById("refLink").value="https://t.me/NaijaGain_bot?startapp="+playerId;
+    renderEarnTab(d);
+  }catch(e){}
+}
 document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>{document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));document.getElementById(b.dataset.page).classList.add("active");load()});
 document.getElementById("copy").onclick=async()=>{const i=document.getElementById("refLink");try{await navigator.clipboard.writeText(i.value)}catch(e){i.select();document.execCommand("copy")}document.getElementById("copy").textContent="Copied!";setTimeout(()=>document.getElementById("copy").textContent="Copy Link",1400)};
 load();
