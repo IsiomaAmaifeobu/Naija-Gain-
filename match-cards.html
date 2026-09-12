@@ -135,7 +135,18 @@ async function load(){
   try{
     const s=await get(pRef);
     data=s.exists()?s.val():{};
-    balance=Number(data.coins||data.balance||0);
+    balance=Number(data.coinBalance||0);
+
+    // One-time migration: earlier versions of this game saved coins under
+    // "coins"/"balance" instead of the shared "coinBalance" field. Fold any
+    // stray amount in now so nothing already earned here is lost.
+    const stray=Number(data.coins||0)+Number(data.balance||0);
+    if(stray>0){
+      balance+=stray;
+      data={...data,coinBalance:balance,coins:0,balance:0};
+      await set(pRef,data);
+    }
+
     balanceEl.textContent=balance+" coins";
     syncEl.textContent="Progress saved to your account";
   }catch(e){
@@ -209,7 +220,7 @@ async function finish(win){
     balance+=reward;
     balanceEl.textContent=balance+" coins";
     msg.textContent="Board complete!";
-    await save({coins:balance,lastPlayed:new Date().toISOString().slice(0,10)});
+    await save({coinBalance:balance,lastPlayed:new Date().toISOString().slice(0,10)});
     document.getElementById("modalTitle").textContent="Board complete!";
     document.getElementById("modalText").textContent=`You found all 8 pairs in ${moves} moves. +${reward} coins added to your balance.`;
   }else{
