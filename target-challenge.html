@@ -88,8 +88,8 @@ const app=initializeApp(firebaseConfig),db=getDatabase(app);
 const tg=window.Telegram?.WebApp||null;if(tg?.ready){try{tg.ready();tg.expand()}catch(e){}}
 function pid(){if(tg?.initDataUnsafe?.user?.id)return"tg_"+tg.initDataUnsafe.user.id;let x=localStorage.getItem("guestId");if(!x){x="guest_"+Math.random().toString(36).slice(2,10);localStorage.setItem("guestId",x)}return x}
 const player=ref(db,"players/"+pid());let coins=0;
-async function load(){try{const s=await get(player),d=s.exists()?s.val():{};coins=Number(d.coins||d.balance||0);document.getElementById("balance").textContent=coins+" coins";document.getElementById("sync").textContent="Progress saved to your account"}catch(e){document.getElementById("sync").textContent="Playing offline"}}
-async function save(){try{const s=await get(player),d=s.exists()?s.val():{};await set(player,{...d,coins,lastPlayed:new Date().toISOString().slice(0,10)})}catch(e){}}
+async function load(){try{const s=await get(player),d=s.exists()?s.val():{};coins=Number(d.coinBalance||0);document.getElementById("balance").textContent=coins+" coins";document.getElementById("sync").textContent="Progress saved to your account"}catch(e){document.getElementById("sync").textContent="Playing offline"}}
+async function save(){try{const s=await get(player),d=s.exists()?s.val():{};await set(player,{...d,coinBalance:coins,lastPlayed:new Date().toISOString().slice(0,10)})}catch(e){}}
 
 const arena=document.getElementById("arena"),scoreEl=document.getElementById("score"),hitsEl=document.getElementById("hits"),timeEl=document.getElementById("time"),msg=document.getElementById("message"),start=document.getElementById("start");
 let score=0,hits=0,time=20,active=false,timer=null,spawn=null,count=0;
