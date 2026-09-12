@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Naija Gain — Target Challenge</title>
+<style>
+:root{--bg:#052f25;--panel:#0b4b3a;--panel2:#0e5b45;--gold:#f7c84a;--gold2:#dfaa22;--cream:#fff8df;--muted:#b9d4ca;--line:rgba(247,200,74,.22)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;background:linear-gradient(160deg,#084533,#052d24 72%);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--cream)}
+body{padding:16px 14px 28px}.app{max-width:430px;margin:auto}
+.topbar{display:grid;grid-template-columns:48px 1fr auto;align-items:center;gap:10px;margin-bottom:15px}
+.back{width:48px;height:48px;border:1px solid var(--line);border-radius:16px;background:#ffffff07;color:var(--cream);font-size:28px;cursor:pointer}
+.title{text-align:center;font-size:14px;font-weight:950;letter-spacing:.07em}
+.balance{display:flex;align-items:center;gap:7px;border:1px solid #f7c84a44;border-radius:999px;padding:9px 12px;font-weight:900;font-size:13px;background:#ffffff06}
+.coin{width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 30% 25%,#fff6bd 0 12%,#f7ce55 38%,#c88b12 84%);box-shadow:0 0 11px #f7c84a55}
+.hero{text-align:center;padding:3px 0 15px}.brand{font-size:31px;font-weight:950;letter-spacing:-1.3px}.brand span{color:var(--gold)}
+.tag{color:var(--muted);font-size:14px;margin-top:6px}.sync{font-size:11px;color:#b9d4ca99;margin-top:8px}
+.game{border:1px solid var(--line);border-radius:28px;padding:16px 14px 19px;background:linear-gradient(180deg,#0d5a45ee,#06392cd9);box-shadow:0 18px 50px #00000020}
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:13px}.stat{border:1px solid #f7c84a20;border-radius:15px;background:#ffffff06;text-align:center;padding:10px}.stat b{display:block;color:var(--gold);font-size:19px}.stat span{font-size:9px;color:var(--muted);font-weight:800;letter-spacing:.05em}
+.arena{height:430px;position:relative;overflow:hidden;border-radius:22px;border:1px solid #f7c84a2d;background:radial-gradient(circle at 50% 45%,#17634b,#08402f 66%,#062f25);box-shadow:inset 0 0 50px #0003}
+.arena:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,#f7c84a14,transparent 42%);pointer-events:none}
+.hint{position:absolute;top:14px;left:0;right:0;text-align:center;color:#d5e4de;font-size:12px;font-weight:750;z-index:2}
+.target{position:absolute;width:76px;height:76px;border-radius:50%;border:0;padding:0;cursor:pointer;display:grid;place-items:center;transform:translate(-50%,-50%) scale(1);transition:transform .08s;box-shadow:0 8px 20px #0005;animation:pop .18s ease-out}
+.target:active{transform:translate(-50%,-50%) scale(.88)}
+.target .r1{position:absolute;inset:0;border-radius:50%;background:#f5efe0;border:2px solid #9b7b35}
+.target .r2{position:absolute;inset:10px;border-radius:50%;background:#dfad2c;border:2px solid #6f551d}
+.target .r3{position:absolute;inset:21px;border-radius:50%;background:#0d5944;border:2px solid #d6bc69}
+.target .r4{position:absolute;inset:31px;border-radius:50%;background:#f3d04f;border:2px solid #7c5e17}
+.target .shine{position:absolute;width:13px;height:13px;left:18px;top:14px;border-radius:50%;background:#fff8df99;filter:blur(1px)}
+@keyframes pop{from{opacity:0;transform:translate(-50%,-50%) scale(.55)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+.countdown{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:70px;font-weight:950;color:#fff7d7;text-shadow:0 7px 25px #0007;z-index:3;pointer-events:none;animation:pulse .7s ease-in-out infinite alternate}
+@keyframes pulse{to{transform:translate(-50%,-50%) scale(1.07)}}
+.controls{padding-top:14px;text-align:center}.message{min-height:22px;font-size:13px;color:var(--muted);font-weight:750}
+.action{width:100%;height:51px;margin-top:8px;border:0;border-radius:16px;background:linear-gradient(180deg,#ffdb66,#e0a51b);color:#352600;font-size:16px;font-weight:950;box-shadow:0 5px 0 #98680a,0 12px 20px #0003;cursor:pointer}.action:active{transform:translateY(3px);box-shadow:0 2px 0 #98680a}.action:disabled{opacity:.45;cursor:default}
+.note{font-size:11px;color:#b9d4ca99;margin-top:12px;line-height:1.4}.backlink{display:block;text-align:center;color:var(--gold);text-decoration:none;font-size:14px;font-weight:850;margin-top:17px}
+.overlay{position:fixed;inset:0;background:#021811cc;backdrop-filter:blur(7px);display:flex;align-items:center;justify-content:center;padding:22px;opacity:0;pointer-events:none;transition:.2s;z-index:10}.overlay.show{opacity:1;pointer-events:auto}
+.modal{width:min(340px,100%);border:1px solid #f7c84a55;border-radius:25px;background:linear-gradient(180deg,#0d5944,#06372a);padding:27px 22px 23px;text-align:center;box-shadow:0 25px 70px #0008;transform:translateY(10px) scale(.96);transition:.2s}.overlay.show .modal{transform:none}
+.icon{width:65px;height:65px;margin:auto;border-radius:20px;background:#f7c84a14;border:1px solid #f7c84a3b;display:grid;place-items:center;font-size:31px}
+.modal h2{margin:13px 0 7px;color:var(--gold);font-size:23px}.modal p{margin:0 0 19px;color:var(--muted);font-size:14px;line-height:1.5}.close{border:0;border-radius:14px;background:var(--gold);color:#392800;font-weight:950;padding:12px 30px}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="topbar">
+<button class="back" onclick="history.back()">‹</button>
+<div class="title">TARGET CHALLENGE</div>
+<div class="balance"><span class="coin"></span><span id="balance">0 coins</span></div>
+</header>
+<section class="hero">
+<div class="brand">Naija <span>Gain</span></div>
+<div class="tag">Tap the targets. Build your score. Earn coins.</div>
+<div class="sync" id="sync">Loading your saved progress...</div>
+</section>
+
+<main class="game">
+<div class="stats">
+<div class="stat"><b id="score">0</b><span>SCORE</span></div>
+<div class="stat"><b id="hits">0</b><span>HITS</span></div>
+<div class="stat"><b id="time">20</b><span>SECONDS</span></div>
+</div>
+<div class="arena" id="arena">
+<div class="hint" id="hint">Press Start, then hit as many targets as you can.</div>
+</div>
+<div class="controls">
+<div class="message" id="message">Every target is worth points. Speed increases as you play.</div>
+<button class="action" id="start">Start Challenge</button>
+<div class="note">Rewards are based on your final score. Play fairly—your score is recorded with your account.</div>
+</div>
+</main>
+<a class="backlink" href="index.html">← Back to games</a>
+</div>
+
+<div class="overlay" id="overlay">
+<div class="modal">
+<div class="icon" id="modalIcon">🎯</div>
+<h2 id="modalTitle">Challenge complete</h2>
+<p id="modalText"></p>
+<button class="close" id="close">Continue</button>
+</div>
+</div>
+
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import{getDatabase,ref,get,set}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+const firebaseConfig={apiKey:"AIzaSyCmT04ri3vMD0O2rxelhVvF8cn2624OdGY",authDomain:"naija-gain.firebaseapp.com",databaseURL:"https://naija-gain-default-rtdb.europe-west1.firebasedatabase.app",projectId:"naija-gain",storageBucket:"naija-gain.firebasestorage.app",messagingSenderId:"384942407595",appId:"1:384942407595:web:eaa6efdb65926fd378dcee"};
+const app=initializeApp(firebaseConfig),db=getDatabase(app);
+const tg=window.Telegram?.WebApp||null;if(tg?.ready){try{tg.ready();tg.expand()}catch(e){}}
+function pid(){if(tg?.initDataUnsafe?.user?.id)return"tg_"+tg.initDataUnsafe.user.id;let x=localStorage.getItem("guestId");if(!x){x="guest_"+Math.random().toString(36).slice(2,10);localStorage.setItem("guestId",x)}return x}
+const player=ref(db,"players/"+pid());let coins=0;
+async function load(){try{const s=await get(player),d=s.exists()?s.val():{};coins=Number(d.coins||d.balance||0);document.getElementById("balance").textContent=coins+" coins";document.getElementById("sync").textContent="Progress saved to your account"}catch(e){document.getElementById("sync").textContent="Playing offline"}}
+async function save(){try{const s=await get(player),d=s.exists()?s.val():{};await set(player,{...d,coins,lastPlayed:new Date().toISOString().slice(0,10)})}catch(e){}}
+
+const arena=document.getElementById("arena"),scoreEl=document.getElementById("score"),hitsEl=document.getElementById("hits"),timeEl=document.getElementById("time"),msg=document.getElementById("message"),start=document.getElementById("start");
+let score=0,hits=0,time=20,active=false,timer=null,spawn=null,count=0;
+function update(){scoreEl.textContent=score;hitsEl.textContent=hits;timeEl.textContent=time}
+function clearTarget(){const t=arena.querySelector(".target");if(t)t.remove()}
+function spawnTarget(){
+ clearTarget();if(!active)return;
+ const t=document.createElement("button");t.className="target";t.setAttribute("aria-label","Hit target");
+ t.innerHTML='<span class="r1"></span><span class="r2"></span><span class="r3"></span><span class="r4"></span><span class="shine"></span>';
+ const rect=arena.getBoundingClientRect(),size=76,pad=10;
+ const x=pad+size/2+Math.random()*(rect.width-size-pad*2), y=48+size/2+Math.random()*(rect.height-size-58);
+ t.style.left=x+"px";t.style.top=y+"px";
+ t.onclick=()=>{if(!active)return;hits++;score+=Math.min(100,10+count*2);count++;update();msg.textContent="Perfect hit!";spawnTarget()};
+ arena.appendChild(t);
+}
+function begin(){
+ clearInterval(timer);clearTimeout(spawn);clearTarget();score=0;hits=0;time=20;count=0;active=true;update();
+ start.disabled=true;start.textContent="Challenge running…";msg.textContent="Hit every target as quickly as possible.";document.getElementById("hint").textContent="";
+ spawnTarget();
+ timer=setInterval(()=>{time--;update();if(time<=0)finish()},1000);
+}
+async function finish(){
+ if(!active)return;active=false;clearInterval(timer);clearTimeout(spawn);clearTarget();start.disabled=false;start.textContent="Play Again";
+ const reward=score>=220?25:score>=140?15:score>=70?8:score>=20?3:0;
+ if(reward){coins+=reward;document.getElementById("balance").textContent=coins+" coins";await save()}
+ document.getElementById("modalIcon").textContent=score>=140?"🏆":"🎯";
+ document.getElementById("modalTitle").textContent=score>=140?"Great run!":"Challenge complete";
+ document.getElementById("modalText").textContent=`You scored ${score} points with ${hits} hits.${reward?` You earned +${reward} coins.`:" Score higher next time to earn coins."}`;
+ document.getElementById("overlay").classList.add("show");
+}
+start.onclick=begin;document.getElementById("close").onclick=()=>document.getElementById("overlay").classList.remove("show");
+load().catch(()=>{});
+</script>
+</body>
+</html>
