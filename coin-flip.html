@@ -58,8 +58,8 @@ const firebaseConfig={apiKey:"AIzaSyCmT04ri3vMD0O2rxelhVvF8cn2624OdGY",authDomai
 const app=initializeApp(firebaseConfig),db=getDatabase(app),tg=window.Telegram?.WebApp||null;if(tg?.ready){try{tg.ready();tg.expand()}catch(e){}}
 function pid(){if(tg?.initDataUnsafe?.user?.id)return"tg_"+tg.initDataUnsafe.user.id;let x=localStorage.getItem("guestId");if(!x){x="guest_"+Math.random().toString(36).slice(2,10);localStorage.setItem("guestId",x)}return x}
 const player=ref(db,"players/"+pid());let coins=0;
-async function load(){try{let s=await get(player),d=s.exists()?s.val():{};coins=Number(d.coins||d.balance||0);balance.textContent=coins+" coins";sync.textContent="Progress saved to your account"}catch(e){sync.textContent="Playing offline"}}
-async function save(){try{let s=await get(player),d=s.exists()?s.val():{};await set(player,{...d,coins,lastPlayed:new Date().toISOString().slice(0,10)})}catch(e){}}
+async function load(){try{let s=await get(player),d=s.exists()?s.val():{};coins=Number(d.coinBalance||0);balance.textContent=coins+" coins";sync.textContent="Progress saved to your account"}catch(e){sync.textContent="Playing offline"}}
+async function save(){try{let s=await get(player),d=s.exists()?s.val():{};await set(player,{...d,coinBalance:coins,lastPlayed:new Date().toISOString().slice(0,10)})}catch(e){}}
 const balance=document.getElementById("balance"),sync=document.getElementById("sync"),coin=document.getElementById("coin3d"),flipBtn=document.getElementById("flip"),message=document.getElementById("message"),ready=document.getElementById("ready"),result=document.getElementById("result"),winsEl=document.getElementById("wins"),flipsEl=document.getElementById("flips"),streakEl=document.getElementById("streak");
 let call="",busy=false,wins=0,flips=0,streak=0;
 document.querySelectorAll(".choice").forEach(b=>b.onclick=()=>{if(busy)return;call=b.dataset.call;document.querySelectorAll(".choice").forEach(x=>x.classList.remove("active"));b.classList.add("active");flipBtn.disabled=false;ready.textContent=`You called ${call.toUpperCase()}`;message.textContent="Ready when you are."});
@@ -80,4 +80,4 @@ document.getElementById("close").onclick=()=>{document.getElementById("overlay")
 load().catch(()=>{});
 </script>
 </body>
-</html>                                                                                                                        </html>
+</html>
