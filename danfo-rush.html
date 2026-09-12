@@ -2,218 +2,67 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Naija Gain — Danfo Rush</title>
 <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
 <style>
-  :root{
-    --bg-deep: #0B3D2E;
-    --bg-deep2: #0F4D3A;
-    --gold: #FFC93C;
-    --gold-dark: #D9A02B;
-    --cream: #FBF3DC;
-    --red: #E4572E;
-    --muted: #B9D9C9;
-  }
-  *{box-sizing:border-box;}
-  body{
-    margin:0; min-height:100vh;
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-    background: radial-gradient(circle at 50% 0%, var(--bg-deep2), var(--bg-deep) 70%);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    color: var(--cream);
-    padding: 22px 16px 40px;
-    overflow-x:hidden;
-  }
-  .brand{ font-size: 26px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 2px; text-align:center; }
-  .brand span{ color: var(--gold); }
-  .tagline{ font-size: 13px; color: var(--muted); margin-bottom: 16px; text-align:center; }
-  .balance{
-    display:flex; align-items:center; gap:8px;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,201,60,0.35);
-    padding: 8px 18px; border-radius: 999px;
-    margin-bottom: 8px; font-weight:700; font-size: 15px;
-  }
-  .coin-dot{
-    width:18px;height:18px;border-radius:50%;
-    background: radial-gradient(circle at 35% 30%, #FFE9A8, var(--gold) 60%, var(--gold-dark));
-    box-shadow: 0 0 8px rgba(255,201,60,0.6);
-  }
-  .sync-note{ font-size: 11px; color: rgba(185,217,201,0.7); margin-bottom: 18px; text-align:center; }
-
-  .track{
-    position:relative;
-    width: 100%; max-width: 340px;
-    height: 200px;
-    border-radius: 18px;
-    background: linear-gradient(180deg, #2e5c46 0%, #1a4536 55%, #123a2c 100%);
-    border: 1px solid rgba(255,201,60,0.25);
-    overflow:hidden;
-    margin-bottom: 18px;
-    transition: background 0.3s ease;
-  }
-  .track.crashed{ background: linear-gradient(180deg, #5c3a2e 0%, #45241a 55%, #2a0c09 100%); }
-  .road{
-    position:absolute;
-    left:0; right:0; bottom:0;
-    height: 54px;
-    background: #2b2b2b;
-    border-top: 3px solid #444;
-  }
-  .road::before{
-    content:"";
-    position:absolute;
-    top: 50%; left:0; right:0;
-    height: 5px;
-    margin-top: -2.5px;
-    background-image: repeating-linear-gradient(90deg, var(--gold) 0 22px, transparent 22px 44px);
-    background-size: 44px 5px;
-    animation: roadmove 0.5s linear infinite;
-  }
-  .track.crashed .road::before{ animation-play-state: paused; opacity:0.4; }
-  @keyframes roadmove{
-    from{ background-position: 0 0; }
-    to{ background-position: -44px 0; }
-  }
-  .danfo{
-    position:absolute;
-    font-size: 34px;
-    left: 20px; bottom: 44px;
-    transform: translate(0,0) scaleX(-1);
-    transition: transform 0.08s linear;
-  }
-  .multiplier{
-    position:absolute;
-    top: 40%; left:50%;
-    transform: translate(-50%,-50%);
-    font-size: 44px;
-    font-weight: 800;
-    color: var(--gold);
-    text-shadow: 0 2px 10px rgba(0,0,0,0.4);
-  }
-  .multiplier.crashed{ color: #ff8b7a; }
-  .status-line{
-    position:absolute;
-    bottom: 10px; left:0; right:0;
-    text-align:center;
-    font-size: 12px;
-    color: var(--muted);
-    font-weight:600;
-  }
-
-  .stake-label{ font-size: 13px; color: var(--muted); margin-bottom: 10px; }
-  .stake-picker{ display:flex; gap:8px; margin-bottom: 12px; flex-wrap:wrap; justify-content:center; }
-  .stake-btn{
-    appearance:none; border:none; cursor:pointer;
-    padding: 9px 16px; border-radius: 12px;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,201,60,0.3);
-    color: var(--cream); font-weight:700; font-size: 13px;
-  }
-  .stake-btn.selected{
-    background: linear-gradient(180deg, #F6D46B, var(--gold-dark));
-    color: #3a2a06; border-color: transparent;
-  }
-  .stake-btn:disabled{ opacity:0.35; cursor:default; }
-  .custom-stake-input{
-    display:block;
-    width: 220px;
-    margin: 0 auto 20px;
-    text-align:center;
-    padding: 10px 14px;
-    border-radius: 12px;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,201,60,0.3);
-    color: var(--cream);
-    font-size: 14px;
-    font-weight:700;
-  }
-  .custom-stake-input::placeholder{ color: rgba(185,217,201,0.6); font-weight:400; }
-  .custom-stake-input:focus{ outline:none; border-color: var(--gold); }
-
-  .action-btn{
-    appearance:none; border:none; cursor:pointer;
-    background: linear-gradient(180deg, #F6D46B, var(--gold-dark));
-    color: #3a2a06; font-weight:800; font-size:17px; letter-spacing:0.02em;
-    padding: 14px 46px; border-radius: 999px;
-    box-shadow: 0 4px 0 #8f6a13, 0 10px 20px rgba(0,0,0,0.35);
-    transition: transform 0.08s ease, background 0.15s ease;
-  }
-  .action-btn.cashout{
-    background: linear-gradient(180deg, #ff8b7a, var(--red));
-    box-shadow: 0 4px 0 #a3341a, 0 10px 20px rgba(0,0,0,0.35);
-    color: #2a0c09;
-  }
-  .action-btn:active{ transform: translateY(3px); }
-  .action-btn:disabled{ opacity:0.55; cursor:default; }
-
-  .stake-note{ margin-top: 14px; font-size: 13px; color: var(--muted); text-align:center; }
-  .back-link{ margin-top: 22px; font-size: 13px; color: var(--gold); text-decoration:none; }
-
-  .result{
-    position:fixed; inset:0;
-    background: rgba(6,20,15,0.72);
-    display:flex; align-items:center; justify-content:center;
-    opacity:0; pointer-events:none;
-    transition: opacity 0.25s ease;
-    z-index: 20;
-  }
-  .result.show{ opacity:1; pointer-events:auto; }
-  .result-card{
-    background: linear-gradient(180deg, var(--bg-deep2), var(--bg-deep));
-    border: 2px solid var(--gold); border-radius: 20px;
-    padding: 32px 28px; text-align:center; max-width: 280px;
-    transform: scale(0.85); transition: transform 0.25s ease;
-  }
-  .result.show .result-card{ transform: scale(1); }
-  .result-emoji{ font-size:44px; margin-bottom:6px; }
-  .result-title{ font-size:20px; font-weight:800; color:var(--gold); margin-bottom:4px; }
-  .result-sub{ font-size:13px; color:var(--muted); margin-bottom:20px; }
-  .result-close{
-    appearance:none; border:none; cursor:pointer;
-    background: var(--gold); color:#3a2a06; font-weight:700;
-    padding: 10px 28px; border-radius: 999px; font-size:14px;
-  }
+:root{--bg:#063c2e;--panel:#0b4a39;--panel2:#0e5542;--gold:#ffc83d;--gold2:#e4a91d;--cream:#fff8e8;--muted:#b8d6c9;--danger:#f05b3f;--road:#242a2a}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;background:radial-gradient(circle at 50% -10%,#17634d 0,#093e30 48%,#053226 100%);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--cream)}
+body{min-height:100vh;padding:env(safe-area-inset-top) 14px calc(22px + env(safe-area-inset-bottom));overflow-x:hidden}
+.app{width:100%;max-width:430px;margin:0 auto;padding:18px 0 24px}
+.topbar{display:grid;grid-template-columns:58px 1fr auto;align-items:center;gap:10px;margin-bottom:18px}
+.back{width:58px;height:58px;border-radius:18px;border:1px solid rgba(255,200,61,.28);background:rgba(255,255,255,.045);color:var(--cream);font-size:30px;line-height:1;cursor:pointer}
+.title{font-size:16px;font-weight:900;letter-spacing:.06em;text-align:center}
+.balance{display:flex;align-items:center;gap:8px;padding:11px 15px;border-radius:999px;border:1px solid rgba(255,200,61,.3);background:rgba(255,255,255,.045);font-weight:850;white-space:nowrap}
+.coin{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 32% 28%,#fff4a8 0 12%,#ffd64e 35%,#d99510 78%,#9b6509);box-shadow:inset -2px -2px 3px rgba(89,49,0,.3),0 0 13px rgba(255,200,61,.25)}
+.hero{text-align:center;margin-bottom:16px}.brand{font-size:36px;font-weight:900;letter-spacing:-.045em}.brand span{color:var(--gold)}.tagline{font-size:16px;color:var(--muted);margin-top:5px}.sync{font-size:11px;color:rgba(184,214,201,.72);margin-top:12px}
+.game-card{position:relative;border:1px solid rgba(255,200,61,.28);background:linear-gradient(180deg,rgba(17,91,68,.96),rgba(7,61,46,.98));border-radius:28px;padding:16px 14px 18px;box-shadow:0 18px 45px rgba(0,0,0,.18),inset 0 1px rgba(255,255,255,.05);overflow:hidden}
+.game-card:before{content:"";position:absolute;width:220px;height:220px;border-radius:50%;right:-110px;top:-120px;background:rgba(255,200,61,.07);filter:blur(3px)}
+.track{position:relative;height:300px;border-radius:22px;overflow:hidden;background:linear-gradient(#7bb4a2 0 35%,#60937f 35% 57%,#2b6a50 57% 63%,#343a39 63% 100%);border:1px solid rgba(255,255,255,.09);box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+.sky-glow{position:absolute;left:50%;top:20px;width:180px;height:100px;transform:translateX(-50%);border-radius:50%;background:rgba(255,241,174,.3);filter:blur(20px)}
+.city{position:absolute;left:0;right:0;top:74px;height:98px;background:linear-gradient(to top,rgba(20,75,58,.45),rgba(20,75,58,.04));opacity:.9}
+.city:before{content:"";position:absolute;left:0;bottom:0;width:100%;height:75px;background:linear-gradient(90deg,#2d6251 0 8%,transparent 8% 12%,#396d59 12% 20%,transparent 20% 24%,#2b5d4c 24% 34%,transparent 34% 40%,#3e765f 40% 48%,transparent 48% 53%,#2b5f4c 53% 62%,transparent 62% 67%,#3b725d 67% 77%,transparent 77% 83%,#2b5e4d 83% 91%,transparent 91%)}
+.tree{position:absolute;bottom:96px;width:42px;height:70px}.tree:before{content:"";position:absolute;left:11px;bottom:0;width:8px;height:35px;background:#584b35}.tree:after{content:"";position:absolute;left:0;top:0;width:40px;height:40px;border-radius:50%;background:#2d7456;box-shadow:14px 12px 0 -5px #28684e,-10px 16px 0 -7px #397c5e}.t1{left:8px}.t2{right:16px;transform:scale(.8)}
+.road{position:absolute;left:0;right:0;bottom:0;height:116px;background:linear-gradient(90deg,#2b3030,#3b4140 50%,#292e2e);transform:perspective(260px) rotateX(10deg);transform-origin:bottom}
+.road:before{content:"";position:absolute;left:0;right:0;top:18px;height:6px;background:repeating-linear-gradient(90deg,transparent 0 35px,#f3e6b7 35px 67px,transparent 67px 102px);opacity:.85;animation:dash .45s linear infinite}
+.road:after{content:"";position:absolute;left:0;right:0;bottom:18px;height:3px;background:rgba(255,255,255,.08)}
+@keyframes dash{to{background-position:-102px 0}}
+.track.crashed .road:before{animation-play-state:paused;opacity:.25}.track.crashed{filter:saturate(.7)}
+.lane-lines{position:absolute;left:0;right:0;bottom:0;height:116px;pointer-events:none;background:linear-gradient(75deg,transparent 0 48%,rgba(255,255,255,.08) 48.2% 48.7%,transparent 49%),linear-gradient(105deg,transparent 0 51%,rgba(255,255,255,.08) 51.2% 51.7%,transparent 52%)}
+.danfo{position:absolute;z-index:5;left:24px;bottom:64px;width:108px;height:70px;transform:translate(0,0);transition:transform .08s linear;filter:drop-shadow(0 10px 8px rgba(0,0,0,.4))}
+.bus-body{position:absolute;left:8px;right:4px;top:13px;height:47px;border-radius:10px 15px 8px 8px;background:linear-gradient(180deg,#e4b625 0 18%,#f3c93d 19% 74%,#b77912 75%);border:2px solid #a66d0d;box-shadow:inset 0 3px rgba(255,255,255,.28),inset 0 -5px rgba(103,58,5,.25)}
+.bus-roof{position:absolute;left:15px;top:7px;width:68px;height:13px;border-radius:10px 12px 2px 2px;background:#f5d35b;border:2px solid #a66d0d}
+.window{position:absolute;top:20px;height:18px;background:linear-gradient(135deg,#253d42,#73949a 45%,#1f3439);border:2px solid #6c5416;border-radius:4px;box-shadow:inset 0 1px rgba(255,255,255,.2)}
+.w1{left:15px;width:27px}.w2{left:45px;width:25px}.w3{left:73px;width:19px}
+.bus-door{position:absolute;right:9px;top:39px;width:13px;height:20px;border:2px solid #83590b;border-radius:2px;background:rgba(49,72,70,.45)}
+.bumper{position:absolute;right:0;bottom:7px;width:9px;height:8px;border-radius:2px;background:#6d4b18}.headlight{position:absolute;right:3px;top:29px;width:7px;height:7px;border-radius:50%;background:#fff5b0;box-shadow:0 0 8px #fff0a0}.stripe{position:absolute;left:10px;right:8px;top:42px;height:4px;background:#166f4e;box-shadow:0 2px #0d4d37}.wheel{position:absolute;bottom:-5px;width:23px;height:23px;border-radius:50%;background:#15191a;border:4px solid #333;box-shadow:inset 0 0 0 3px #111}.wheel:after{content:"";position:absolute;inset:5px;border-radius:50%;background:#9d9d91}.front{right:9px}.rear{left:15px}
+.multiplier{position:absolute;z-index:6;top:34px;left:50%;transform:translateX(-50%);font-size:48px;font-weight:950;letter-spacing:-.04em;color:#fff5ca;text-shadow:0 4px 18px rgba(0,0,0,.35)}.multiplier.crashed{color:#ff9b87}.status-line{position:absolute;z-index:7;bottom:15px;left:0;right:0;text-align:center;font-size:13px;font-weight:800;color:#eef5ef;text-shadow:0 2px 5px #0008}
+.stake-area{padding:18px 4px 0}.stake-label{text-align:center;color:var(--muted);font-size:14px;font-weight:700;margin-bottom:11px}.stake-picker{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.stake-btn{border:1px solid rgba(255,200,61,.27);border-radius:13px;background:rgba(255,255,255,.045);color:var(--cream);padding:11px 5px;font-weight:850;font-size:14px;cursor:pointer}.stake-btn.selected{background:linear-gradient(180deg,#ffe07a,#e3a918);color:#382703;border-color:transparent;box-shadow:0 4px 0 #9c6b0b}.stake-btn:disabled{opacity:.35;cursor:default;box-shadow:none}.custom-stake-input{width:100%;margin:10px 0 12px;padding:13px 14px;text-align:center;border:1px solid rgba(255,200,61,.22);border-radius:13px;background:rgba(0,0,0,.12);color:var(--cream);font-size:14px;font-weight:750}.custom-stake-input:focus{outline:none;border-color:var(--gold)}.custom-stake-input::placeholder{color:#a9c8ba;font-weight:500}
+.action-btn{width:100%;border:0;border-radius:16px;padding:16px;background:linear-gradient(180deg,#ffd965,#e4aa19);color:#332400;font-size:18px;font-weight:950;box-shadow:0 5px 0 #9b6c0b,0 12px 24px rgba(0,0,0,.22);cursor:pointer}.action-btn:active{transform:translateY(3px);box-shadow:0 2px 0 #9b6c0b}.action-btn.cashout{background:linear-gradient(180deg,#ff917d,#e44d35);box-shadow:0 5px 0 #9c3020;color:#350e08}.action-btn:disabled{opacity:.48;cursor:default;transform:none}
+.stake-note{text-align:center;color:var(--muted);font-size:12px;line-height:1.45;margin:12px 5px 0}.back-link{display:block;text-align:center;margin-top:18px;color:var(--gold);font-weight:800;text-decoration:none;font-size:14px}
+.result{position:fixed;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;padding:22px;background:rgba(1,20,15,.78);backdrop-filter:blur(7px);opacity:0;pointer-events:none;transition:opacity .22s}.result.show{opacity:1;pointer-events:auto}.result-card{width:min(340px,100%);padding:28px 22px;border-radius:26px;border:1px solid rgba(255,200,61,.45);background:linear-gradient(180deg,#0d5943,#073a2c);box-shadow:0 25px 70px #0008;text-align:center;transform:translateY(12px) scale(.96);transition:.22s}.result.show .result-card{transform:none}.result-icon{width:64px;height:64px;margin:0 auto 12px;border-radius:20px;display:grid;place-items:center;background:rgba(255,200,61,.12);border:1px solid rgba(255,200,61,.25)}.result-icon:before{content:"";width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 32% 28%,#fff3a4,#ffc83d 48%,#b87308);box-shadow:0 0 18px rgba(255,200,61,.4)}.result-title{font-size:21px;font-weight:950;color:var(--gold);margin-bottom:7px}.result-sub{font-size:14px;color:var(--muted);line-height:1.5;margin-bottom:20px}.result-close{border:0;border-radius:13px;background:var(--gold);color:#3a2a06;padding:12px 30px;font-weight:900;font-size:14px;cursor:pointer}
+@media(max-width:360px){.brand{font-size:31px}.track{height:270px}.danfo{transform:scale(.88);transform-origin:left bottom}.balance{padding:10px 11px}.topbar{grid-template-columns:52px 1fr auto}.back{width:52px;height:52px}}
 </style>
 </head>
 <body>
-
-  <div class="brand">Naija <span>Gain</span></div>
-  <div class="tagline">Cash out before the danfo speeds off.</div>
-
-  <div class="balance"><span class="coin-dot"></span><span id="balanceText">Loading...</span></div>
-  <div class="sync-note" id="syncNote">Loading your saved progress...</div>
-
-  <div class="track" id="track">
-    <div class="road"></div>
-    <span class="danfo" id="danfo">🚌</span>
-    <div class="multiplier" id="multiplierText">1.00x</div>
-    <div class="status-line" id="statusLine">Place a stake to start</div>
-  </div>
-
-  <div class="stake-label">Stake how many coins?</div>
-  <div class="stake-picker" id="stakePicker">
-    <button class="stake-btn" data-stake="5">5</button>
-    <button class="stake-btn" data-stake="10">10</button>
-    <button class="stake-btn" data-stake="25">25</button>
-    <button class="stake-btn" data-stake="50">50</button>
-  </div>
-  <input type="number" id="customStake" class="custom-stake-input" placeholder="Or type a custom amount" min="1" inputmode="numeric">
-
-  <button class="action-btn" id="actionBtn" disabled>Place Bet</button>
-  <div class="stake-note" id="stakeNote">Loading...</div>
-  <a href="index.html" class="back-link">← Back to games</a>
-
-  <div class="result" id="resultOverlay">
-    <div class="result-card">
-      <div class="result-emoji" id="resultEmoji">🎉</div>
-      <div class="result-title" id="resultTitle">You won!</div>
-      <div class="result-sub" id="resultSub"></div>
-      <button class="result-close" id="resultClose">Nice!</button>
+<div class="app">
+  <div class="topbar"><button class="back" onclick="history.back()" aria-label="Back">‹</button><div class="title">DANFO RUSH</div><div class="balance"><span class="coin"></span><span id="balanceText">Loading...</span></div></div>
+  <div class="hero"><div class="brand">Naija <span>Gain</span></div><div class="tagline">Cash out before the danfo speeds off.</div><div class="sync" id="syncNote">Loading your saved progress...</div></div>
+  <div class="game-card">
+    <div class="track" id="track">
+      <div class="sky-glow"></div><div class="city"></div><div class="tree t1"></div><div class="tree t2"></div>
+      <div class="road"></div><div class="lane-lines"></div>
+      <div class="danfo" id="danfo" aria-label="Danfo bus">
+        <div class="bus-roof"></div><div class="bus-body"><div class="window w1"></div><div class="window w2"></div><div class="window w3"></div><div class="stripe"></div><div class="bus-door"></div><div class="headlight"></div><div class="bumper"></div><div class="wheel rear"></div><div class="wheel front"></div></div>
+      </div>
+      <div class="multiplier" id="multiplierText">1.00x</div><div class="status-line" id="statusLine">Choose a stake to start your trip</div>
     </div>
+    <div class="stake-area"><div class="stake-label">Stake how many coins?</div><div class="stake-picker" id="stakePicker"><button class="stake-btn" data-stake="5">5</button><button class="stake-btn" data-stake="10">10</button><button class="stake-btn" data-stake="25">25</button><button class="stake-btn" data-stake="50">50</button></div><input type="number" id="customStake" class="custom-stake-input" placeholder="Or enter a custom stake" min="1" inputmode="numeric"><button class="action-btn" id="actionBtn" disabled>Start Ride</button><div class="stake-note" id="stakeNote">Loading...</div></div>
   </div>
-
+  <a href="index.html" class="back-link">← Back to games</a>
+</div>
+<div class="result" id="resultOverlay"><div class="result-card"><div class="result-icon"></div><div class="result-title" id="resultTitle">Ride complete</div><div class="result-sub" id="resultSub"></div><button class="result-close" id="resultClose">Continue</button></div></div>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
@@ -508,7 +357,6 @@
     actionBtn.textContent = "Place Bet";
     actionBtn.classList.remove('cashout');
 
-    resultEmoji.textContent = "💥";
     resultTitle.textContent = "Danfo broke down at " + crashPoint.toFixed(2) + "x";
     resultSub.textContent = "Lost " + selectedStake + " coins — balance: " + coinBalance + " coins";
 
@@ -535,7 +383,6 @@
     actionBtn.textContent = "Place Bet";
     actionBtn.classList.remove('cashout');
 
-    resultEmoji.textContent = "🏆";
     resultTitle.textContent = "Cashed out at " + m.toFixed(2) + "x!";
     resultSub.textContent = "Won " + winnings + " coins — balance: " + coinBalance + " coins";
 
@@ -564,4 +411,9 @@
 
 </body>
       </html>
+    
+
+</body>
+</html>
+
     
