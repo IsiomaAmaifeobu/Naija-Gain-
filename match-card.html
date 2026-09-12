@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Naija Gain — Match Cards</title>
+<script src="https://telegram.org/js/telegram-web-app.js" defer></script>
+<style>
+:root{
+  --bg:#052f25;--panel:#0b4b3a;--panel2:#0f5b45;--gold:#f7c84a;
+  --gold2:#d99b19;--cream:#fff8df;--muted:#b9d4ca;--line:rgba(247,200,74,.22);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--cream);background:linear-gradient(160deg,#083f30,#052d24 72%)}
+body{padding:16px 14px 30px;overflow-x:hidden}
+.app{width:100%;max-width:430px;margin:auto}
+.topbar{display:grid;grid-template-columns:48px 1fr auto;align-items:center;gap:10px;margin-bottom:16px}
+.back{width:48px;height:48px;border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.045);color:var(--cream);font-size:28px;display:grid;place-items:center;cursor:pointer}
+.title{text-align:center;font-size:14px;font-weight:950;letter-spacing:.06em}
+.balance{display:flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid rgba(247,200,74,.28);border-radius:999px;background:rgba(255,255,255,.04);font-size:13px;font-weight:900}
+.coin{width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 30% 25%,#fff4ad 0 10%,#f8cd54 38%,#c9890e 84%);box-shadow:inset -2px -2px 4px #69470b55,0 0 12px #f7c84a44}
+.hero{text-align:center;padding:4px 0 15px}
+.brand{font-size:31px;font-weight:950;letter-spacing:-1.3px}.brand span{color:var(--gold)}
+.tagline{font-size:14px;color:var(--muted);margin:7px 0 9px}
+.sync{font-size:11px;color:#b9d4caaa}
+.game-card{border:1px solid var(--line);border-radius:28px;background:linear-gradient(180deg,#0d5944e8,#073a2ddf);box-shadow:0 18px 48px #00000020;padding:17px 14px 18px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:15px}
+.stat{padding:10px 7px;text-align:center;border:1px solid #f7c84a22;border-radius:14px;background:#ffffff06}
+.stat b{display:block;font-size:17px;color:var(--gold)}.stat span{font-size:10px;color:var(--muted);font-weight:700}
+.board{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;perspective:900px}
+.card{aspect-ratio:1/1.18;border:0;padding:0;background:transparent;cursor:pointer;perspective:800px}
+.card:disabled{cursor:default}
+.card-inner{position:relative;width:100%;height:100%;transition:transform .42s cubic-bezier(.2,.7,.2,1);transform-style:preserve-3d}
+.card.flipped .card-inner,.card.matched .card-inner{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;backface-visibility:hidden;border-radius:16px;display:flex;align-items:center;justify-content:center}
+.front{background:linear-gradient(145deg,#0b624a,#083e31);border:1px solid #f7c84a30;box-shadow:inset 0 1px #ffffff10,0 6px 12px #0003}
+.front:before{content:"";position:absolute;inset:8px;border-radius:11px;border:1px dashed #f7c84a35}
+.front-mark{width:34px;height:34px;border:2px solid #f7c84a66;border-radius:50%;display:grid;place-items:center;color:#f7c84a;font-weight:950;font-size:15px}
+.backface{transform:rotateY(180deg);background:linear-gradient(145deg,#fff8dc,#dfc783);border:1px solid #ffffff80;box-shadow:inset 3px 3px 7px #ffffffcc,inset -5px -6px 9px #876b2940,0 7px 12px #0004}
+.matched .backface{box-shadow:0 0 0 2px #f7c84a66,0 0 18px #f7c84a35,inset 3px 3px 7px #ffffffcc}
+.icon{width:54px;height:54px}
+.icon *{vector-effect:non-scaling-stroke}
+.controls{padding-top:16px;text-align:center}
+.message{min-height:21px;font-size:13px;color:var(--muted);font-weight:750;margin-bottom:10px}
+.action{width:100%;height:50px;border:0;border-radius:16px;background:linear-gradient(180deg,#ffdb66,#e0a51b);color:#352600;font-size:16px;font-weight:950;box-shadow:0 5px 0 #98680a,0 12px 20px #0003;cursor:pointer}
+.action:active{transform:translateY(3px);box-shadow:0 2px 0 #98680a}
+.action:disabled{opacity:.45;box-shadow:0 4px 0 #6e561b;cursor:default}
+.note{font-size:11px;color:#b9d4ca99;margin-top:12px;line-height:1.4}
+.back-link{display:block;text-align:center;color:var(--gold);text-decoration:none;font-size:14px;font-weight:850;margin:17px 0 2px}
+.overlay{position:fixed;inset:0;z-index:20;background:#021811cc;backdrop-filter:blur(7px);display:flex;align-items:center;justify-content:center;padding:22px;opacity:0;pointer-events:none;transition:.2s}
+.overlay.show{opacity:1;pointer-events:auto}
+.modal{width:min(340px,100%);text-align:center;border:1px solid #f7c84a55;border-radius:25px;padding:28px 22px 23px;background:linear-gradient(180deg,#0d5944,#06372a);box-shadow:0 25px 70px #0008;transform:translateY(10px) scale(.96);transition:.2s}
+.overlay.show .modal{transform:none}
+.trophy{width:66px;height:66px;margin:0 auto 13px;border-radius:20px;background:#f7c84a16;border:1px solid #f7c84a38;display:grid;place-items:center}
+.trophy svg{width:38px;height:38px}
+.modal h2{margin:0 0 7px;color:var(--gold);font-size:22px}.modal p{margin:0 0 19px;color:var(--muted);font-size:14px;line-height:1.5}
+.close{border:0;border-radius:14px;background:var(--gold);color:#392800;font-weight:950;padding:12px 30px;cursor:pointer}
+@media(max-width:360px){.board{gap:7px}.game-card{padding-left:11px;padding-right:11px}.card .front-mark{width:29px;height:29px}.icon{width:48px;height:48px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <button class="back" onclick="history.back()" aria-label="Back">‹</button>
+    <div class="title">MATCH CARDS</div>
+    <div class="balance"><span class="coin"></span><span id="balanceText">Loading...</span></div>
+  </div>
+
+  <section class="hero">
+    <div class="brand">Naija <span>Gain</span></div>
+    <div class="tagline">Find every pair. Finish the board. Earn coins.</div>
+    <div class="sync" id="syncNote">Loading your saved progress...</div>
+  </section>
+
+  <main class="game-card">
+    <div class="stats">
+      <div class="stat"><b id="pairs">0/8</b><span>PAIRS</span></div>
+      <div class="stat"><b id="moves">0</b><span>MOVES</span></div>
+      <div class="stat"><b id="timer">45</b><span>SECONDS</span></div>
+    </div>
+
+    <div class="board" id="board"></div>
+
+    <div class="controls">
+      <div class="message" id="message">Tap two cards to find a match.</div>
+      <button class="action" id="restart">New Game</button>
+      <div class="note">Complete the board before time runs out. Fewer moves earn a better reward.</div>
+    </div>
+  </main>
+  <a class="back-link" href="index.html">← Back to games</a>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="trophy">
+      <svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
+        <path d="M20 11h24v14c0 10-5 16-12 16S20 35 20 25V11Z" stroke="#f7c84a" stroke-width="4"/>
+        <path d="M20 16H9c0 11 4 17 13 17M44 16h11c0 11-4 17-13 17M32 41v9M22 53h20" stroke="#f7c84a" stroke-width="4" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <h2 id="modalTitle">Board complete!</h2>
+    <p id="modalText"></p>
+    <button class="close" id="closeModal">Continue</button>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig={
+  apiKey:"AIzaSyCmT04ri3vMD0O2rxelhVvF8cn2624OdGY",
+  authDomain:"naija-gain.firebaseapp.com",
+  databaseURL:"https://naija-gain-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId:"naija-gain",
+  storageBucket:"naija-gain.firebasestorage.app",
+  messagingSenderId:"384942407595",
+  appId:"1:384942407595:web:eaa6efdb65926fd378dcee"
+};
+const app=initializeApp(firebaseConfig),db=getDatabase(app);
+const tg=window.Telegram?.WebApp||null;
+if(tg?.ready){try{tg.ready();tg.expand()}catch(e){}}
+
+function playerId(){
+  if(tg?.initDataUnsafe?.user?.id)return "tg_"+tg.initDataUnsafe.user.id;
+  let id=localStorage.getItem("guestId");
+  if(!id){id="guest_"+Math.random().toString(36).slice(2,10);try{localStorage.setItem("guestId",id)}catch(e){}}
+  return id;
+}
+const pRef=ref(db,"players/"+playerId());
+const balanceEl=document.getElementById("balanceText"),syncEl=document.getElementById("syncNote");
+let balance=0, data=null;
+
+async function load(){
+  try{
+    const s=await get(pRef);
+    data=s.exists()?s.val():{};
+    balance=Number(data.coins||data.balance||0);
+    balanceEl.textContent=balance+" coins";
+    syncEl.textContent="Progress saved to your account";
+  }catch(e){
+    balance=0;balanceEl.textContent="0 coins";syncEl.textContent="Playing offline";
+  }
+}
+async function save(patch){
+  try{
+    const s=await get(pRef), cur=s.exists()?s.val():{};
+    await set(pRef,{...cur,...patch});
+  }catch(e){}
+}
+
+const icons=[
+  {name:"star",svg:`<svg class="icon" viewBox="0 0 64 64"><path d="M32 7l7.2 16 17.3 1.7-13 11.4 3.8 17L32 44.2 16.7 53l3.8-17-13-11.4L24.8 23 32 7Z" fill="#f4c33d" stroke="#6d5110" stroke-width="2"/></svg>`},
+  {name:"ball",svg:`<svg class="icon" viewBox="0 0 64 64"><circle cx="32" cy="32" r="23" fill="#f8f1d8" stroke="#6b5728" stroke-width="2"/><path d="M32 20l8 6-3 10h-10l-3-10 8-6ZM24 36l-8 6M37 36l7 7M25 26l-7-5M40 26l8-5M32 46v-9" stroke="#233c32" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`},
+  {name:"crown",svg:`<svg class="icon" viewBox="0 0 64 64"><path d="M10 18l12 10 10-18 10 18 12-10-5 31H15L10 18Z" fill="#f3c63e" stroke="#705313" stroke-width="2"/><path d="M16 42h32" stroke="#fff0a0" stroke-width="3"/></svg>`},
+  {name:"bolt",svg:`<svg class="icon" viewBox="0 0 64 64"><path d="M37 5L14 35h15l-3 24 24-32H35L37 5Z" fill="#f6c83e" stroke="#705313" stroke-width="2" stroke-linejoin="round"/></svg>`},
+  {name:"gem",svg:`<svg class="icon" viewBox="0 0 64 64"><path d="M16 10h32l9 14-25 30L7 24l9-14Z" fill="#e9cf70" stroke="#705c27" stroke-width="2"/><path d="M7 24h50M16 10l16 44L48 10M25 10l-9 14M39 10l9 14" stroke="#8a7028" stroke-width="2"/></svg>`},
+  {name:"shield",svg:`<svg class="icon" viewBox="0 0 64 64"><path d="M32 7l21 8v16c0 14-9 23-21 27C20 54 11 45 11 31V15l21-8Z" fill="#d9c47b" stroke="#685621" stroke-width="2"/><path d="M21 32l7 7 15-16" stroke="#176044" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>`},
+  {name:"coin",svg:`<svg class="icon" viewBox="0 0 64 64"><circle cx="32" cy="32" r="23" fill="#f4c23d" stroke="#705313" stroke-width="2"/><circle cx="32" cy="32" r="17" fill="none" stroke="#fff0a0" stroke-width="2"/><path d="M37 21c-2-2-10-3-13 2-3 6 12 5 14 11 2 7-10 10-15 4M32 17v30" stroke="#725615" stroke-width="3" stroke-linecap="round"/></svg>`},
+  {name:"target",svg:`<svg class="icon" viewBox="0 0 64 64"><circle cx="32" cy="32" r="24" fill="#eee4c4" stroke="#6b5728" stroke-width="2"/><circle cx="32" cy="32" r="16" fill="#e4b83e"/><circle cx="32" cy="32" r="8" fill="#126047"/><circle cx="32" cy="32" r="3" fill="#f8f0d2"/></svg>`}
+];
+
+let cards=[],first=null,second=null,lock=false,moves=0,pairs=0,time=45,timerId=null,gameOver=false;
+const board=document.getElementById("board"),msg=document.getElementById("message");
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+
+function build(){
+  clearInterval(timerId);moves=0;pairs=0;time=45;gameOver=false;first=null;second=null;lock=false;
+  cards=shuffle([...icons,...icons].map((x,i)=>({...x,id:i})));
+  board.innerHTML="";
+  cards.forEach((c,index)=>{
+    const b=document.createElement("button");b.className="card";b.dataset.index=index;
+    b.innerHTML=`<div class="card-inner"><div class="face front"><div class="front-mark">N</div></div><div class="face backface">${c.svg}</div></div>`;
+    b.addEventListener("click",()=>flip(b,index));
+    board.appendChild(b);
+  });
+  update();
+  msg.textContent="Tap two cards to find a match.";
+  timerId=setInterval(()=>{if(gameOver)return;time--;update();if(time<=0)finish(false)},1000);
+}
+function update(){
+  document.getElementById("pairs").textContent=pairs+"/8";
+  document.getElementById("moves").textContent=moves;
+  document.getElementById("timer").textContent=time;
+}
+function flip(btn,index){
+  if(lock||gameOver||btn.classList.contains("flipped")||btn.classList.contains("matched"))return;
+  btn.classList.add("flipped");
+  if(!first){first={btn,index};return}
+  second={btn,index};moves++;update();lock=true;
+  if(cards[first.index].name===cards[second.index].name){
+    setTimeout(()=>{
+      first.btn.classList.add("matched");second.btn.classList.add("matched");
+      pairs++;first=null;second=null;lock=false;update();
+      if(pairs===8)finish(true);
+      else msg.textContent="Nice match. Find the next pair.";
+    },360);
+  }else{
+    msg.textContent="Not a match. Try again.";
+    setTimeout(()=>{first.btn.classList.remove("flipped");second.btn.classList.remove("flipped");first=null;second=null;lock=false},720);
+  }
+}
+async function finish(win){
+  gameOver=true;clearInterval(timerId);
+  let reward=0;
+  if(win){
+    reward=Math.max(5,25-Math.max(0,moves-8)*2+Math.floor(time/5));
+    balance+=reward;
+    balanceEl.textContent=balance+" coins";
+    msg.textContent="Board complete!";
+    await save({coins:balance,lastPlayed:new Date().toISOString().slice(0,10)});
+    document.getElementById("modalTitle").textContent="Board complete!";
+    document.getElementById("modalText").textContent=`You found all 8 pairs in ${moves} moves. +${reward} coins added to your balance.`;
+  }else{
+    document.getElementById("modalTitle").textContent="Time's up";
+    document.getElementById("modalText").textContent=`You found ${pairs} of 8 pairs. Start a new board and try to beat your score.`;
+  }
+  document.getElementById("overlay").classList.add("show");
+}
+document.getElementById("restart").addEventListener("click",build);
+document.getElementById("closeModal").addEventListener("click",()=>{document.getElementById("overlay").classList.remove("show");build()});
+load().then(build);
+</script>
+</body>
+</html>
