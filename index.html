@@ -1,646 +1,74 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script src='//libtl.com/sdk.js' data-zone='11771755' data-sdk='show_11771755'></script>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Naija Gain</title>
 <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <style>
-  :root{
-    --bg-deep: #0B3D2E;
-    --bg-deep2: #0F4D3A;
-    --gold: #FFC93C;
-    --gold-dark: #D9A02B;
-    --cream: #FBF3DC;
-    --red: #E4572E;
-    --muted: #B9D9C9;
-    --card-dark: #08291F;
-  }
-  *{box-sizing:border-box;}
-  html,body{
-    margin:0;
-    min-height:100vh;
-    background: radial-gradient(circle at 50% 0%, var(--bg-deep2), var(--bg-deep) 70%);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    color: var(--cream);
-  }
-  .app{
-    max-width: 460px;
-    margin: 0 auto;
-    padding: 20px 16px 90px; /* bottom padding clears the fixed nav */
-    min-height: 100vh;
-  }
-  .topbar{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    margin-bottom: 18px;
-  }
-  .brand{
-    font-size: 22px;
-    font-weight: 800;
-    letter-spacing: -0.02em;
-  }
-  .brand span{ color: var(--gold); }
-  .balance-pill{
-    display:flex;
-    align-items:center;
-    gap:6px;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,201,60,0.35);
-    padding: 7px 14px;
-    border-radius: 999px;
-    font-weight:700;
-    font-size: 13px;
-  }
-  .coin-dot{
-    width:14px;height:14px;border-radius:50%;
-    background: radial-gradient(circle at 35% 30%, #FFE9A8, var(--gold) 60%, var(--gold-dark));
-    box-shadow: 0 0 6px rgba(255,201,60,0.6);
-  }
-  .page{ display:none; }
-  .page.active{ display:block; }
-
-  /* ---------- Games page: tile grid ---------- */
-  .promo{
-    background: linear-gradient(135deg, var(--bg-deep2), #145c40);
-    border: 1px solid rgba(255,201,60,0.3);
-    border-radius: 18px;
-    padding: 20px;
-    margin-bottom: 20px;
-  }
-  .promo-title{ font-size: 18px; font-weight: 800; margin-bottom: 4px; }
-  .promo-sub{ font-size: 12.5px; color: var(--muted); }
-
-  .section-label{
-    font-size:12px;
-    color: var(--muted);
-    margin: 4px 4px 10px;
-  }
-  .tile-grid{
-    display:grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-bottom: 24px;
-  }
-  .tile{
-    position:relative;
-    aspect-ratio: 1 / 1;
-    border-radius: 18px;
-    overflow:hidden;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    text-decoration:none;
-    color: var(--cream);
-    border: 1px solid rgba(255,201,60,0.25);
-    background: linear-gradient(160deg, rgba(255,255,255,0.06), rgba(0,0,0,0.15));
-    transition: transform 0.12s ease;
-  }
-  .tile:active{ transform: scale(0.96); }
-  .tile-icon{ font-size: 40px; margin-bottom: 8px; }
-  .tile-title{ font-weight: 800; font-size: 14px; text-align:center; padding:0 8px; }
-  .tile-sub{ font-size: 10.5px; color: var(--muted); text-align:center; padding: 0 10px; margin-top:2px; }
-  .tile.locked{ opacity: 0.55; pointer-events:none; }
-  .tile-badge{
-    position:absolute;
-    top:10px; right:10px;
-    font-size: 9.5px;
-    font-weight: 700;
-    color: var(--bg-deep);
-    background: var(--gold);
-    padding: 2px 8px;
-    border-radius: 999px;
-  }
-
-  /* ---------- Wallet page ---------- */
-  .wallet-card{
-    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
-    border: 1px solid rgba(255,201,60,0.3);
-    border-radius: 18px;
-    padding: 22px;
-    text-align:center;
-    margin-bottom: 18px;
-  }
-  .wallet-balance{ font-size: 34px; font-weight: 800; color: var(--gold); }
-  .wallet-label{ font-size: 12.5px; color: var(--muted); margin-top:2px; }
-  .info-note{
-    font-size: 12.5px;
-    color: var(--muted);
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,201,60,0.15);
-    border-radius: 14px;
-    padding: 14px 16px;
-    line-height:1.5;
-  }
-
-  /* ---------- Refer page ---------- */
-  .refer-input{
-    display:block;
-    width: 100%;
-    padding: 12px 14px;
-    border-radius: 12px;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,201,60,0.3);
-    color: var(--cream);
-    font-size: 12.5px;
-    margin-bottom: 12px;
-  }
-  .refer-btn-row{ display:flex; gap:10px; }
-  .refer-btn{
-    flex:1;
-    appearance:none; border:none; cursor:pointer;
-    padding: 12px 0;
-    border-radius: 999px;
-    font-weight:700; font-size: 13.5px;
-    background: rgba(255,255,255,0.08);
-    color: var(--cream);
-    border: 1px solid rgba(255,201,60,0.3);
-  }
-  .refer-btn-gold{
-    background: linear-gradient(180deg, #F6D46B, var(--gold-dark));
-    color: #3a2a06;
-    border-color: transparent;
-  }
-
-  /* ---------- Earn page ---------- */
-  .task-row{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,201,60,0.2);
-    border-radius: 14px;
-    padding: 14px 16px;
-    margin-bottom: 10px;
-  }
-  .task-left{ display:flex; align-items:center; gap:12px; }
-  .task-icon{
-    width:38px; height:38px; border-radius:10px;
-    background: rgba(255,201,60,0.12);
-    display:flex; align-items:center; justify-content:center;
-    font-size: 18px;
-  }
-  .task-name{ font-weight:700; font-size: 13.5px; }
-  .task-reward{ font-size: 11.5px; color: var(--muted); }
-  .task-btn{
-    appearance:none; border:none; cursor:pointer;
-    padding: 9px 18px; border-radius: 999px;
-    font-weight:700; font-size: 12.5px;
-    background: linear-gradient(180deg, #F6D46B, var(--gold-dark));
-    color: #3a2a06;
-  }
-  .task-btn.done{
-    background: rgba(255,255,255,0.08);
-    color: var(--muted);
-    cursor:default;
-  }
-
-  .ad-modal{
-    position:fixed; inset:0;
-    background: rgba(6,20,15,0.85);
-    display:flex; align-items:center; justify-content:center;
-    opacity:0; pointer-events:none;
-    transition: opacity 0.2s ease;
-    z-index: 40;
-  }
-  .ad-modal.show{ opacity:1; pointer-events:auto; }
-  .ad-modal-card{
-    background: linear-gradient(180deg, var(--bg-deep2), var(--bg-deep));
-    border: 2px solid var(--gold); border-radius: 20px;
-    padding: 34px 30px; text-align:center; max-width: 260px;
-  }
-  .ad-modal-emoji{ font-size:40px; margin-bottom:10px; }
-  .ad-modal-title{ font-size:16px; font-weight:700; margin-bottom:6px; }
-  .ad-modal-count{ font-size:32px; font-weight:800; color:var(--gold); margin: 10px 0; }
-  .ad-modal-btn{
-    appearance:none; border:none; cursor:pointer;
-    background: var(--gold); color:#3a2a06; font-weight:700;
-    padding: 10px 28px; border-radius: 999px; font-size:14px;
-    display:none;
-  }
-  .ad-modal-btn.show{ display:inline-block; }
-
-  /* ---------- Profile page ---------- */
-  .profile-row{
-    display:flex;
-    justify-content:space-between;
-    padding: 12px 4px;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-    font-size: 13.5px;
-  }
-  .profile-row span:first-child{ color: var(--muted); }
-
-  footer{
-    margin-top: 20px;
-    font-size: 11px;
-    color: rgba(185,217,201,0.55);
-    text-align:center;
-  }
-
-  /* ---------- Bottom nav ---------- */
-  .bottom-nav{
-    position: fixed;
-    bottom:0; left:0; right:0;
-    display:flex;
-    background: rgba(8,41,31,0.96);
-    backdrop-filter: blur(6px);
-    border-top: 1px solid rgba(255,201,60,0.2);
-    padding: 8px 0 max(8px, env(safe-area-inset-bottom));
-    z-index: 30;
-  }
-  .nav-btn{
-    flex:1;
-    appearance:none;
-    border:none;
-    background:none;
-    color: var(--muted);
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    gap:3px;
-    font-size: 10.5px;
-    font-weight:600;
-    padding: 6px 0 2px;
-    cursor:pointer;
-  }
-  .nav-btn .nav-icon{ font-size: 20px; }
-  .nav-btn.active{ color: var(--gold); }
+:root{--bg:#071019;--panel:#0d1724;--panel2:#111f30;--gold:#d4af37;--gold2:#f2d36a;--text:#f7f8fb;--muted:#91a0b5;--line:#223148}
+*{box-sizing:border-box}body{margin:0;background:#04080d;color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif}
+.app{max-width:480px;margin:auto;min-height:100vh;padding:18px 16px 96px;background:radial-gradient(circle at 50% 0,#17263b,#071019 55%,#04080d)}
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}.brand{font-size:23px;font-weight:900}.brand span{color:var(--gold)}
+.balance{display:flex;align-items:center;gap:7px;background:#101a28;border:1px solid #2c3a50;border-radius:999px;padding:8px 12px;font-size:12px;font-weight:800}
+.coin{width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff0a8,#d4af37 62%,#96701b);box-shadow:0 0 8px #d4af3755}
+.page{display:none}.page.active{display:block}.hero{padding:19px;border:1px solid #26364d;border-radius:22px;background:linear-gradient(145deg,#122238,#0b1420);margin-bottom:20px}
+.hero h1{margin:0 0 5px;font-size:20px}.hero p{margin:0;color:var(--muted);font-size:12px}
+.label{font-size:11px;color:#8290a4;text-transform:uppercase;letter-spacing:1px;margin:0 4px 10px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.tile{position:relative;min-height:165px;padding:16px;border:1px solid #26364c;border-radius:20px;background:linear-gradient(160deg,#132236,#0b131f);text-decoration:none;color:var(--text);display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;transition:.12s}
+.tile:active{transform:scale(.97)}.art{position:absolute;top:17px;left:50%;transform:translateX(-50%);width:82px;height:82px}
+.tile h3{margin:0;font-size:14px}.tile p{margin:4px 0 0;color:var(--muted);font-size:10px;line-height:1.35}
+.badge{position:absolute;right:10px;top:10px;padding:4px 8px;border-radius:999px;background:#d4af37;color:#171207;font-size:8px;font-weight:900}
+.card{padding:20px;border:1px solid #26364d;border-radius:22px;background:linear-gradient(180deg,#101b2a,#0b131f);margin-bottom:14px}
+.big{font-size:32px;font-weight:900;color:var(--gold);text-align:center}.center{text-align:center}.muted{color:var(--muted);font-size:12px;line-height:1.5}
+.row{display:flex;justify-content:space-between;padding:13px 2px;border-bottom:1px solid #1d2a3c;font-size:13px}.row span:first-child{color:var(--muted)}
+.bottom{position:fixed;bottom:0;left:0;right:0;z-index:20;display:flex;background:#08111cdd;backdrop-filter:blur(12px);border-top:1px solid #25354b;padding:8px 0 max(8px,env(safe-area-inset-bottom))}
+.nav{flex:1;border:0;background:none;color:#75849a;font-size:10px;font-weight:700;padding:6px 0;display:flex;flex-direction:column;align-items:center;gap:4px}.nav svg{width:20px;height:20px}.nav.active{color:var(--gold)}
 </style>
 </head>
 <body>
+<div class="app">
+<header class="top"><div class="brand">Naija <span>Gain</span></div><div class="balance"><i class="coin"></i><span id="topBalance">...</span></div></header>
 
-  <div class="app">
+<section class="page active" id="games">
+<div class="hero"><h1>Play. Win. Gain.</h1><p>Choose a game and earn virtual Naija Gain coins.</p></div>
+<div class="label">Games</div>
+<div class="grid">
+<a class="tile" href="spin.html"><svg class="art" viewBox="0 0 100 100"><circle cx="50" cy="50" r="39" fill="#172c45" stroke="#d4af37" stroke-width="5"/><path d="M50 50 50 12A38 38 0 0 1 77 23Z" fill="#d4af37"/><path d="M50 50 77 23A38 38 0 0 1 88 50Z" fill="#315274"/><circle cx="50" cy="50" r="9" fill="#101a28" stroke="#f2d36a" stroke-width="3"/><path d="M50 3 43 17h14Z" fill="#fff"/></svg><h3>Spin the Wheel</h3><p>Spin for a random coin reward.</p></a>
+<a class="tile" href="dice.html"><svg class="art" viewBox="0 0 100 100"><rect x="18" y="18" width="64" height="64" rx="16" fill="#f5e5b5" stroke="#d4af37" stroke-width="4" transform="rotate(-8 50 50)"/><g fill="#152030"><circle cx="35" cy="35" r="5"/><circle cx="65" cy="35" r="5"/><circle cx="50" cy="50" r="5"/><circle cx="35" cy="65" r="5"/><circle cx="65" cy="65" r="5"/></g></svg><h3>Dice Roll</h3><p>Roll the custom 3D-style die.</p></a>
+<a class="tile" href="match-cards.html"><svg class="art" viewBox="0 0 100 100"><rect x="17" y="20" width="38" height="55" rx="7" fill="#19314b" stroke="#d4af37" stroke-width="3" transform="rotate(-12 36 47)"/><rect x="45" y="24" width="38" height="55" rx="7" fill="#d4af37" stroke="#f4dc7e" stroke-width="3" transform="rotate(9 64 51)"/><path d="M56 43c6-8 16 1 0 14-16-13-6-22 0-14Z" fill="#122033"/></svg><h3>Match Cards</h3><p>Find every pair before time runs out.</p></a>
+<a class="tile" href="coin-flip.html"><svg class="art" viewBox="0 0 100 100"><circle cx="50" cy="50" r="34" fill="#d4af37" stroke="#f5dd80" stroke-width="5"/><circle cx="50" cy="50" r="25" fill="#122033" stroke="#b88d22" stroke-width="3"/><text x="50" y="59" text-anchor="middle" font-size="25" font-weight="900" fill="#f2d36a">NG</text></svg><h3>Coin Flip</h3><p>Call heads or tails and test your luck.</p></a>
+<a class="tile" href="danfo-rush.html"><svg class="art" viewBox="0 0 100 100"><rect x="15" y="31" width="70" height="39" rx="10" fill="#e4c34e" stroke="#f8e48d" stroke-width="3"/><rect x="22" y="38" width="18" height="12" rx="2" fill="#17283d"/><rect x="44" y="38" width="18" height="12" rx="2" fill="#17283d"/><rect x="66" y="38" width="12" height="12" rx="2" fill="#17283d"/><circle cx="29" cy="72" r="8" fill="#080e16"/><circle cx="71" cy="72" r="8" fill="#080e16"/><path d="M18 57h64" stroke="#17283d" stroke-width="3"/></svg><h3>Danfo Rush</h3><p>Ride the multiplier and cash out in time.</p></a>
+<a class="tile" href="target-challenge.html"><svg class="art" viewBox="0 0 100 100"><circle cx="50" cy="50" r="38" fill="#102034" stroke="#d4af37" stroke-width="4"/><circle cx="50" cy="50" r="27" fill="none" stroke="#d4af37" stroke-width="7"/><circle cx="50" cy="50" r="15" fill="none" stroke="#f2d36a" stroke-width="6"/><circle cx="50" cy="50" r="5" fill="#fff"/></svg><h3>Target Challenge</h3><p>React fast and hit every target.</p></a>
+<a class="tile" href="football-challenge.html"><svg class="art" viewBox="0 0 100 100"><rect x="13" y="20" width="74" height="60" rx="8" fill="#0d392e" stroke="#2f9a72" stroke-width="3"/><path d="M50 20v60M13 50h74" stroke="#8ad3b5" stroke-width="2" opacity=".55"/><path d="M28 29h44v42H28z" fill="none" stroke="#d4af37" stroke-width="3"/><circle cx="50" cy="51" r="11" fill="#f2f3ef"/><path d="m50 44 6 5-2 7h-8l-2-7Z" fill="#172333"/></svg><h3>Football Challenge</h3><p>Take five penalty shots.</p></a>
+</div>
+</section>
 
-    <div class="topbar">
-      <div class="brand">Naija <span>Gain</span></div>
-      <div class="balance-pill"><span class="coin-dot"></span><span id="topBalance">...</span></div>
-    </div>
+<section class="page" id="wallet"><div class="card center"><div class="big" id="walletBalance">...</div><div class="muted">virtual coins</div></div><div class="card muted">Coins are earned through games and tasks. Withdrawals are not currently enabled.</div></section>
+<section class="page" id="refer"><div class="card center"><div class="big" id="refCount">...</div><div class="muted">friends referred</div></div><div class="card"><div class="muted">Your referral link</div><input id="refLink" readonly style="width:100%;margin:10px 0;padding:12px;border-radius:12px;border:1px solid #26364d;background:#09121e;color:#fff"><button id="copy" style="width:100%;padding:12px;border:0;border-radius:12px;background:#d4af37;font-weight:900">Copy Link</button></div></section>
+<section class="page" id="earn"><div class="card center"><div class="big" id="ads">0 / 5</div><div class="muted">ads watched today</div></div><div class="card muted">Daily ad tasks remain available from the Earn section.</div></section>
+<section class="page" id="profile"><div class="card"><div class="row"><span>Player ID</span><span id="pid">...</span></div><div class="row"><span>Coin balance</span><span id="pbal">...</span></div><div class="row"><span>Friends referred</span><span id="pref">...</span></div></div></section>
+</div>
 
-    <!-- GAMES PAGE -->
-    <div class="page active" id="page-games">
-      <div class="promo">
-        <div class="promo-title">Welcome back 👋</div>
-        <div class="promo-sub">Pick a game below. Spin, tap, win coins daily.</div>
-      </div>
+<nav class="bottom">
+<button class="nav active" data-page="games"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="12" rx="4"/><path d="M8 12v4M6 14h4M16 13h.01M19 15h.01"/></svg>Games</button>
+<button class="nav" data-page="earn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="m10 8 6 4-6 4Z"/></svg>Earn</button>
+<button class="nav" data-page="wallet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="14" rx="3"/><path d="M3 10h18M16 15h2"/></svg>Wallet</button>
+<button class="nav" data-page="refer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="12" r="3"/><circle cx="16" cy="7" r="3"/><circle cx="16" cy="17" r="3"/><path d="m10.5 10.5 3-2M10.5 13.5l3 2"/></svg>Refer</button>
+<button class="nav" data-page="profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c1-5 15-5 16 0"/></svg>Profile</button>
+</nav>
 
-      <div class="section-label">Games</div>
-      <div class="tile-grid">
-
-        <a href="spin.html" class="tile">
-          <div class="tile-icon">🎡</div>
-          <div class="tile-title">Spin the Wheel</div>
-          <div class="tile-sub">3 free spins daily</div>
-        </a>
-
-        <a href="dice.html" class="tile">
-          <div class="tile-icon">🎲</div>
-          <div class="tile-title">Dice Roll</div>
-          <div class="tile-sub">3 free rolls daily</div>
-        </a>
-
-        <div class="tile locked">
-          <div class="tile-badge">SOON</div>
-          <div class="tile-icon">🃏</div>
-          <div class="tile-title">Match Cards</div>
-          <div class="tile-sub">Flip for bonus coins</div>
-        </div>
-
-        <a href="flip.html" class="tile">
-          <div class="tile-badge" style="background:var(--red);color:var(--cream);">STAKE</div>
-          <div class="tile-icon">🪙</div>
-          <div class="tile-title">Coin Flip</div>
-          <div class="tile-sub">Stake coins, double or lose</div>
-        </a>
-
-        <a href="danfo-rush.html" class="tile">
-          <div class="tile-badge" style="background:var(--red);color:var(--cream);">STAKE</div>
-          <div class="tile-icon">🚌</div>
-          <div class="tile-title">Danfo Rush</div>
-          <div class="tile-sub">Cash out before it breaks down</div>
-        </a>
-
-      </div>
-
-      <footer>More games added regularly — check back daily.</footer>
-    </div>
-
-    <!-- WALLET PAGE -->
-    <div class="page" id="page-wallet">
-      <div class="wallet-card">
-        <div class="wallet-balance" id="walletBalance">...</div>
-        <div class="wallet-label">coins</div>
-      </div>
-      <div class="info-note">
-        Coins are earned by playing games in the Naija Gain hub. Withdrawals aren't open yet — we'll announce here as soon as that's ready.
-      </div>
-    </div>
-
-    <!-- REFER PAGE -->
-    <div class="page" id="page-refer">
-      <div class="wallet-card">
-        <div class="wallet-balance" id="referCount">...</div>
-        <div class="wallet-label">friends joined</div>
-      </div>
-      <div class="section-label">Your referral link</div>
-      <input type="text" id="referLink" class="refer-input" readonly>
-      <div class="refer-btn-row">
-        <button class="refer-btn" id="copyLinkBtn">Copy Link</button>
-        <button class="refer-btn refer-btn-gold" id="shareLinkBtn">Share</button>
-      </div>
-      <div class="info-note" style="margin-top:18px;">
-        Share your link — when a friend opens Naija Gain through it for the first time, you both get bonus coins. You: +20 coins. Them: +10 coins to start.
-      </div>
-    </div>
-
-    <!-- EARN PAGE -->
-    <div class="page" id="page-earn">
-      <div class="wallet-card">
-        <div class="wallet-balance" id="adsWatchedText">...</div>
-        <div class="wallet-label">ads watched today</div>
-      </div>
-      <div class="section-label">Daily ad tasks</div>
-      <div id="taskList"></div>
-      <div class="info-note" style="margin-top:8px;">
-        Watch a short ad, earn 20 coins. Resets every day — come back tomorrow for 5 more.
-      </div>
-    </div>
-
-    <!-- PROFILE PAGE -->
-    <div class="page" id="page-profile">
-      <div class="wallet-card">
-        <div class="wallet-balance" id="profileBalance">...</div>
-        <div class="wallet-label">coins earned</div>
-      </div>
-      <div class="profile-row"><span>Player ID</span><span id="profilePlayerId">...</span></div>
-      <div class="profile-row"><span>Free spins today</span><span id="profileSpins">...</span></div>
-      <div class="profile-row"><span>Last played</span><span id="profileLastDate">...</span></div>
-      <div class="profile-row"><span>Friends referred</span><span id="profileReferrals">...</span></div>
-    </div>
-
-  </div>
-
-  <div class="ad-modal" id="adModal">
-    <div class="ad-modal-card">
-      <div class="ad-modal-emoji">📺</div>
-      <div class="ad-modal-title" id="adModalTitle">Ad playing...</div>
-      <div class="ad-modal-count" id="adModalCount">5</div>
-      <button class="ad-modal-btn" id="adModalClaimBtn">Claim +20 coins</button>
-    </div>
-  </div>
-
-  <nav class="bottom-nav">
-    <button class="nav-btn active" data-page="games"><span class="nav-icon">🎮</span>Games</button>
-    <button class="nav-btn" data-page="earn"><span class="nav-icon">🎬</span>Earn</button>
-    <button class="nav-btn" data-page="wallet"><span class="nav-icon">💰</span>Wallet</button>
-    <button class="nav-btn" data-page="refer"><span class="nav-icon">🔗</span>Refer</button>
-    <button class="nav-btn" data-page="profile"><span class="nav-icon">👤</span>Profile</button>
-  </nav>
-
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyCmT04ri3vMD0O2rxelhVvF8cn2624OdGY",
-    authDomain: "naija-gain.firebaseapp.com",
-    databaseURL: "https://naija-gain-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "naija-gain",
-    storageBucket: "naija-gain.firebasestorage.app",
-    messagingSenderId: "384942407595",
-    appId: "1:384942407595:web:eaa6efdb65926fd378dcee"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
-
-  const tg = window.Telegram ? window.Telegram.WebApp : null;
-  if (tg && tg.ready) { try { tg.ready(); tg.expand(); } catch(e){} }
-
-  function getPlayerId(){
-    if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) {
-      return "tg_" + tg.initDataUnsafe.user.id;
-    }
-    let guestId = localStorage.getItem('guestId');
-    if (!guestId) {
-      guestId = "guest_" + Math.random().toString(36).slice(2, 10);
-      try { localStorage.setItem('guestId', guestId); } catch(e){}
-    }
-    return guestId;
-  }
-  const playerId = getPlayerId();
-  const playerRef = ref(db, 'players/' + playerId);
-
-  function withTimeout(promise, fallbackValue, ms = 4000){
-    return Promise.race([
-      promise,
-      new Promise((resolve) => setTimeout(() => resolve(fallbackValue), ms))
-    ]);
-  }
-
-  async function loadPlayer(id){
-    try {
-      const snapshot = await withTimeout(get(ref(db, 'players/' + id)), null, 4000);
-      if (snapshot && snapshot.exists && snapshot.exists()) return snapshot.val();
-      return null;
-    } catch(e) { return null; }
-  }
-
-  async function savePlayer(id, patch){
-    try {
-      const current = await loadPlayer(id);
-      const merged = Object.assign({}, current || {}, patch);
-      await withTimeout(set(ref(db, 'players/' + id), merged), undefined, 4000);
-    } catch(e) { /* save failed silently */ }
-  }
-
-  const BOT_USERNAME = "NaijaGain_bot";
-
-  function todayStr(){
-    const d = new Date();
-    return d.getFullYear() + "-" + (d.getMonth()+1) + "-" + d.getDate();
-  }
-
-  // ---------- Referral crediting ----------
-  // Runs once per load. Only credits if this is a genuinely brand-new player
-  // (no existing record) opened via a valid ?startapp=<referrerId> link.
-  async function processReferral(){
-    const startParam = tg && tg.initDataUnsafe ? tg.initDataUnsafe.start_param : null;
-    if (!startParam || startParam === playerId) return; // no code, or self-referral
-
-    const ownData = await loadPlayer(playerId);
-    if (ownData) return; // not a new player — already has a record, don't credit again
-
-    const referrerData = await loadPlayer(startParam);
-    if (!referrerData) return; // referral code doesn't match a real player — ignore
-
-    // New player gets a starting bonus, tagged with who referred them
-    await savePlayer(playerId, { coinBalance: 10, referredBy: startParam });
-
-    // Referrer gets their reward and referral count bumped
-    const newReferralCount = (typeof referrerData.referralCount === 'number' ? referrerData.referralCount : 0) + 1;
-    const newReferrerBalance = (typeof referrerData.coinBalance === 'number' ? referrerData.coinBalance : 0) + 20;
-    await savePlayer(startParam, { coinBalance: newReferrerBalance, referralCount: newReferralCount });
-  }
-
-  const AD_TASK_COUNT = 5;
-  const AD_REWARD = 20;
-  let adsWatchedToday = 0;
-
-  async function loadBalance(){
-    let data = null;
-    try {
-      const snapshot = await withTimeout(get(playerRef), null, 4000);
-      if (snapshot && snapshot.exists && snapshot.exists()) data = snapshot.val();
-    } catch(e) { /* fall through to defaults below */ }
-
-    const coins = (data && typeof data.coinBalance === 'number') ? data.coinBalance : 0;
-    const spins = (data && typeof data.freeSpinsLeft === 'number') ? data.freeSpinsLeft : 3;
-    const lastDate = (data && data.lastSpinDate) ? data.lastSpinDate : "—";
-    const referralCount = (data && typeof data.referralCount === 'number') ? data.referralCount : 0;
-
-    if (data && data.lastAdDate === todayStr() && typeof data.adsWatchedToday === 'number') {
-      adsWatchedToday = data.adsWatchedToday;
-    } else {
-      adsWatchedToday = 0; // new day, tasks reset
-    }
-
-    document.getElementById('topBalance').textContent = coins + " coins";
-    document.getElementById('walletBalance').textContent = coins;
-    document.getElementById('profileBalance').textContent = coins;
-    document.getElementById('profileSpins').textContent = spins;
-    document.getElementById('profileLastDate').textContent = lastDate;
-    document.getElementById('profilePlayerId').textContent =
-      playerId.length > 14 ? playerId.slice(0, 12) + "…" : playerId;
-    document.getElementById('profileReferrals').textContent = referralCount;
-    document.getElementById('referCount').textContent = referralCount;
-    document.getElementById('referLink').value = "https://t.me/" + BOT_USERNAME + "?startapp=" + playerId;
-    document.getElementById('adsWatchedText').textContent = adsWatchedToday + " / " + AD_TASK_COUNT;
-    renderTaskList();
-  }
-
-  function renderTaskList(){
-    const list = document.getElementById('taskList');
-    let html = "";
-    for (let i = 1; i <= AD_TASK_COUNT; i++) {
-      const done = i <= adsWatchedToday;
-      html += '<div class="task-row">' +
-        '<div class="task-left">' +
-          '<div class="task-icon">📺</div>' +
-          '<div><div class="task-name">Watch Ad ' + i + '</div>' +
-          '<div class="task-reward">+' + AD_REWARD + ' coins</div></div>' +
-        '</div>' +
-        '<button class="task-btn' + (done ? ' done' : '') + '" data-slot="' + i + '" ' + (done ? 'disabled' : '') + '>' +
-          (done ? 'Done' : 'Watch') +
-        '</button>' +
-      '</div>';
-    }
-    list.innerHTML = html;
-    list.querySelectorAll('.task-btn:not(.done)').forEach(btn => {
-      btn.addEventListener('click', () => watchAd(parseInt(btn.dataset.slot, 10)));
-    });
-  }
-
-  function watchAd(slot){
-    if (slot <= adsWatchedToday) return; // already claimed, ignore stale click
-    const modal = document.getElementById('adModal');
-    const title = document.getElementById('adModalTitle');
-    const countEl = document.getElementById('adModalCount');
-    const claimBtn = document.getElementById('adModalClaimBtn');
-
-    title.textContent = "Loading ad...";
-    countEl.textContent = "📺";
-    claimBtn.classList.remove('show');
-    modal.classList.add('show');
-
-    const showRewardedAd = window.show_11771755;
-    if (typeof showRewardedAd !== 'function') {
-      title.textContent = "Ad couldn't load";
-      countEl.textContent = "⚠️";
-      claimBtn.textContent = "Close";
-      claimBtn.classList.add('show');
-      claimBtn.onclick = () => { modal.classList.remove('show'); claimBtn.textContent = "Claim +20 coins"; };
-      return;
-    }
-
-    showRewardedAd()
-      .then(async () => {
-        // Ad genuinely watched — credit the reward
-title.textContent = "Ad complete!";
-        countEl.textContent = "✓";
-        adsWatchedToday += 1;
-        const newBalance = (parseInt(document.getElementById('topBalance').textContent, 10) || 0) + AD_REWARD;
-        await savePlayer(playerId, {
-          coinBalance: newBalance,
-          adsWatchedToday: adsWatchedToday,
-          lastAdDate: todayStr()
-        });
-        claimBtn.textContent = "Nice!";
-        claimBtn.classList.add('show');
-        claimBtn.onclick = () => { modal.classList.remove('show'); claimBtn.textContent = "Claim +20 coins"; loadBalance(); };
-      })
-      .catch(() => {
-        // Ad failed or was skipped — no reward
-        title.textContent = "Ad skipped or failed";
-        countEl.textContent = "✕";
-        claimBtn.textContent = "Close";
-        claimBtn.classList.add('show');
-        claimBtn.onclick = () => { modal.classList.remove('show'); claimBtn.textContent = "Claim +20 coins"; };
-      });
-  }
-
-  await processReferral();
-  loadBalance();
-
-  // ---------- Copy / Share referral link ----------
-  const copyLinkBtn = document.getElementById('copyLinkBtn');
-  const shareLinkBtn = document.getElementById('shareLinkBtn');
-  const referLinkInput = document.getElementById('referLink');
-
-  copyLinkBtn.addEventListener('click', async () => {
-    try {
-      await navigator.clipboard.writeText(referLinkInput.value);
-    } catch(e) {
-      referLinkInput.select();
-      try { document.execCommand('copy'); } catch(e2) { /* nothing more we can do */ }
-    }
-    const original = copyLinkBtn.textContent;
-    copyLinkBtn.textContent = "Copied!";
-    setTimeout(() => { copyLinkBtn.textContent = original; }, 1500);
-  });
-
-  shareLinkBtn.addEventListener('click', () => {
-    const shareText = "Play Naija Gain with me — spin, roll dice, and win coins! ";
-    const shareUrl = "https://t.me/share/url?url=" + encodeURIComponent(referLinkInput.value) + "&text=" + encodeURIComponent(shareText);
-    if (tg && tg.openTelegramLink) {
-      tg.openTelegramLink(shareUrl);
-    } else {
-      window.open(shareUrl, '_blank');
-    }
-  });
-
-  // ---------- Bottom nav tab switching ----------
-  const navButtons = document.querySelectorAll('.nav-btn');
-  const pages = {
-    games: document.getElementById('page-games'),
-    earn: document.getElementById('page-earn'),
-    wallet: document.getElementById('page-wallet'),
-    refer: document.getElementById('page-refer'),
-    profile: document.getElementById('page-profile'),
-  };
-  navButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      navButtons.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      Object.values(pages).forEach(p => p.classList.remove('active'));
-      pages[btn.dataset.page].classList.add('active');
-      // Refresh balance each time Wallet/Refer/Profile is opened
-      if (btn.dataset.page !== 'games') loadBalance();
-    });
-  });
+<script>
+const firebaseConfig={apiKey:"AIzaSyCmT04ri3vMD0O2rxelhVvF8cn2624OdGY",authDomain:"naija-gain.firebaseapp.com",databaseURL:"https://naija-gain-default-rtdb.europe-west1.firebasedatabase.app",projectId:"naija-gain",storageBucket:"naija-gain.firebasestorage.app",messagingSenderId:"384942407595",appId:"1:384942407595:web:eaa6efdb65926fd378dcee"};
+firebase.initializeApp(firebaseConfig);const db=firebase.database();const tg=window.Telegram?.WebApp;tg?.ready();tg?.expand();
+function getPlayerId(){if(tg?.initDataUnsafe?.user?.id)return"tg_"+tg.initDataUnsafe.user.id;let id=localStorage.getItem("guestId");if(!id){id="guest_"+Math.random().toString(36).slice(2,10);localStorage.setItem("guestId",id)}return id}
+const playerId=getPlayerId(), playerRef=db.ref("players/"+playerId);
+async function load(){try{const s=await playerRef.once("value"),d=s.val()||{},b=Number(d.coinBalance||0),r=Number(d.referralCount||0);document.getElementById("topBalance").textContent=b.toLocaleString();document.getElementById("walletBalance").textContent=b.toLocaleString();document.getElementById("pbal").textContent=b.toLocaleString();document.getElementById("refCount").textContent=r;document.getElementById("pref").textContent=r;document.getElementById("pid").textContent=playerId.length>16?playerId.slice(0,13)+"…":playerId;document.getElementById("refLink").value="https://t.me/NaijaGain_bot?startapp="+playerId;document.getElementById("ads").textContent=Number(d.adsWatchedToday||0)+" / 5"}catch(e){}}
+document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>{document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));document.getElementById(b.dataset.page).classList.add("active");load()});
+document.getElementById("copy").onclick=async()=>{const i=document.getElementById("refLink");try{await navigator.clipboard.writeText(i.value)}catch(e){i.select();document.execCommand("copy")}document.getElementById("copy").textContent="Copied!";setTimeout(()=>document.getElementById("copy").textContent="Copy Link",1400)};
+load();
 </script>
-
 </body>
-</html>
+  </html>
