@@ -86,7 +86,7 @@ const AD_TIMEOUT_MS=45000;
 const todayStr=()=>new Date().toISOString().slice(0,10);
 
 function renderEarnTab(d){
-  const watched=(d.adDate===todayStr())?Number(d.adsWatchedToday||0):0;
+  const watched=(d.lastAdDate===todayStr())?Number(d.adsWatchedToday||0):0;
   document.getElementById("adsProgress").textContent=watched+" / "+AD_REWARDS.length;
   const list=document.getElementById("taskList");
   list.innerHTML="";
@@ -108,6 +108,9 @@ function renderEarnTab(d){
   });
 }
 
+// Waits for the ad SDK to signal completion, but never hangs forever:
+// if it goes quiet for too long after the ad was shown, we treat it as
+// watched anyway so the button can never get stuck.
 function showAdWithTimeout(ms){
   return new Promise((resolve,reject)=>{
     let settled=false;
@@ -132,13 +135,13 @@ async function watchAd(index,reward,btn){
     const s=await playerRef.once("value");
     const d=s.val()||{};
     const today=todayStr();
-    const watchedNow=(d.adDate===today)?Number(d.adsWatchedToday||0):0;
+    const watchedNow=(d.lastAdDate===today)?Number(d.adsWatchedToday||0):0;
     if(watchedNow!==index){
       note.textContent="Already up to date.";
       await load();return;
     }
     const newBalance=Number(d.coinBalance||0)+reward;
-    await playerRef.update({coinBalance:newBalance,adsWatchedToday:watchedNow+1,adDate:today});
+    await playerRef.update({coinBalance:newBalance,adsWatchedToday:watchedNow+1,lastAdDate:today});
     note.textContent=`+${reward} coins added! Keep going.`;
     await load();
   }catch(e){
@@ -165,4 +168,4 @@ document.getElementById("copy").onclick=async()=>{const i=document.getElementByI
 load();
 </script>
 </body>
-  </html>
+                                                                                                                   </html>
