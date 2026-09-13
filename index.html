@@ -165,7 +165,15 @@ async function load(){
 }
 document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>{document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));document.getElementById(b.dataset.page).classList.add("active");load()});
 document.getElementById("copy").onclick=async()=>{const i=document.getElementById("refLink");try{await navigator.clipboard.writeText(i.value)}catch(e){i.select();document.execCommand("copy")}document.getElementById("copy").textContent="Copied!";setTimeout(()=>document.getElementById("copy").textContent="Copy Link",1400)};
+
+// Telegram's in-app browser can keep this page alive in the background and
+// just redisplay it when you navigate back, without re-fetching data. Force
+// a fresh reload from Firebase every time this page becomes visible again.
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)load();});
+window.addEventListener("pageshow",()=>load());
+window.addEventListener("focus",()=>load());
+
 load();
 </script>
 </body>
-                                                                                                                   </html>
+</html>
