@@ -109,8 +109,13 @@ const db=firebase.database();
 const tg=window.Telegram?.WebApp;
 tg?.ready(); tg?.expand();
 
-const uid=tg?.initDataUnsafe?.user?.id ? String(tg.initDataUnsafe.user.id) : (localStorage.getItem("ngGuestId") || (()=>{const x="guest_"+Math.random().toString(36).slice(2);localStorage.setItem("ngGuestId",x);return x})());
-const player="tg_"+uid;
+function getPlayerId(){
+  if(tg?.initDataUnsafe?.user?.id) return "tg_"+tg.initDataUnsafe.user.id;
+  let id=localStorage.getItem("guestId");
+  if(!id){id="guest_"+Math.random().toString(36).slice(2,10);localStorage.setItem("guestId",id);}
+  return id;
+}
+const player=getPlayerId();
 const prizes=[5,10,20,50,100,25,15,2];
 const DAILY_LIMIT=5;
 let data={};
@@ -141,7 +146,7 @@ function updateUI(){
 
 async function load(){
   try{
-    const snap=await db.ref("users/"+player).once("value");
+    const snap=await db.ref("players/"+player).once("value");
     data=snap.val()||{};
     today=localDate();
     if(data.lastSpinDate!==today){dailySpins=0;}else{dailySpins=Number(data.dailySpinCount||0);}
@@ -153,7 +158,7 @@ async function load(){
 }
 
 async function saveReward(reward){
-  const ref=db.ref("users/"+player);
+  const ref=db.ref("players/"+player);
   const result=await ref.transaction(current=>{
     current=current||{};
     const date=localDate();
@@ -219,4 +224,4 @@ function closeModal(){
 load();
 </script>
 </body>
-</html>
+                                                                                                                                                        </html>
