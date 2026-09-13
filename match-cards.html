@@ -139,11 +139,14 @@ async function load(){
 
     // One-time migration: earlier versions of this game saved coins under
     // "coins"/"balance" instead of the shared "coinBalance" field. Fold any
-    // stray amount in now so nothing already earned here is lost.
+    // stray amount in now so nothing already earned here is lost, and
+    // remove the old keys entirely (Firebase rules only allow known fields).
     const stray=Number(data.coins||0)+Number(data.balance||0);
     if(stray>0){
       balance+=stray;
-      data={...data,coinBalance:balance,coins:0,balance:0};
+      data={...data,coinBalance:balance};
+      delete data.coins;
+      delete data.balance;
       await set(pRef,data);
     }
 
