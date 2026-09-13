@@ -40,38 +40,17 @@
     background: radial-gradient(circle at 35% 30%, #FFE9A8, var(--gold) 60%, var(--gold-dark));
     box-shadow: 0 0 8px rgba(255,201,60,0.6);
   }
-  .sync-note{ font-size: 11px; color: rgba(185,217,201,0.7); margin-bottom: 24px; text-align:center; }
+  .sync-note{ font-size: 11px; color: rgba(185,217,201,0.7); margin-bottom: 18px; text-align:center; }
 
-  .coin-wrap{
-    width: 140px; height: 140px;
-    border-radius: 50%;
-    display:flex; align-items:center; justify-content:center;
-    font-size: 60px;
-    background: radial-gradient(circle at 35% 30%, #FFE9A8, var(--gold) 60%, var(--gold-dark));
-    box-shadow: 0 12px 28px rgba(0,0,0,0.4), inset 0 -6px 10px rgba(0,0,0,0.15);
-    margin-bottom: 8px;
-    color: #3a2a06;
-    font-weight: 800;
-    border: 4px solid #fff6d6;
-    transition: transform 0.08s ease, background 0.05s ease;
+  .coin-3d-wrap{
+    width: 220px; height: 220px;
+    margin-bottom: 20px;
+    position: relative;
   }
-  .coin-wrap.side-tails{
-    background: radial-gradient(circle at 35% 30%, #ffffff, #d7dde2 60%, #9aa4ad);
-    color: #2b3238;
-    border-color: #eef1f3;
-  }
-  .coin-wrap.flipping{ animation: flip 0.3s infinite; }
-  @keyframes flip{
-    0%{ transform: scaleX(1); }
-    50%{ transform: scaleX(0.15); }
-    100%{ transform: scaleX(1); }
-  }
-  .coin-caption{
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--muted);
-    margin-bottom: 22px;
-    letter-spacing: 0.04em;
+  .coin-3d-wrap canvas{
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
   }
 
   .pick-label{ font-size: 13px; color: var(--muted); margin-bottom: 10px; }
@@ -102,22 +81,20 @@
     color: #3a2a06; border-color: transparent;
   }
   .stake-btn:disabled{ opacity:0.35; cursor:default; }
-
   .custom-stake-input{
-    display:block;
-    width: 220px;
-    margin: 0 auto 26px;
-    text-align:center;
+    width: 180px;
     padding: 10px 14px;
     border-radius: 12px;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,201,60,0.3);
+    border: 1px solid rgba(255,201,60,0.4);
+    background: rgba(255,255,255,0.08);
     color: var(--cream);
-    font-size: 14px;
-    font-weight:700;
+    font-size: 15px;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 26px;
+    outline: none;
   }
-  .custom-stake-input::placeholder{ color: rgba(185,217,201,0.6); font-weight:400; }
-  .custom-stake-input:focus{ outline:none; border-color: var(--gold); }
+  .custom-stake-input::placeholder{ color: rgba(251,243,220,0.5); font-weight:500; }
 
   .flip-btn{
     appearance:none; border:none; cursor:pointer;
@@ -167,8 +144,9 @@
   <div class="balance"><span class="coin-dot"></span><span id="balanceText">Loading...</span></div>
   <div class="sync-note" id="syncNote">Loading your saved progress...</div>
 
-  <div class="coin-wrap" id="coinFace">H</div>
-  <div class="coin-caption" id="coinCaption">HEADS</div>
+  <div class="coin-3d-wrap">
+    <canvas id="coinCanvas"></canvas>
+  </div>
 
   <div class="pick-label">Heads or Tails?</div>
   <div class="side-picker" id="sidePicker">
@@ -182,8 +160,10 @@
     <button class="stake-btn" data-stake="10">10</button>
     <button class="stake-btn" data-stake="25">25</button>
     <button class="stake-btn" data-stake="50">50</button>
+    <button class="stake-btn" id="customStakeBtn" data-stake="custom">Custom</button>
   </div>
-  <input type="number" id="customStake" class="custom-stake-input" placeholder="Or type a custom amount" min="1" inputmode="numeric">
+  <input type="number" id="customStakeInput" class="custom-stake-input" placeholder="Enter amount" inputmode="numeric" min="1" style="display:none;">
+
 
   <button class="flip-btn" id="flipBtn" disabled>Flip the Coin</button>
   <div class="stake-note" id="stakeNote">Loading...</div>
@@ -201,6 +181,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+  import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCmT04ri3vMD0O2rxelhVvF8cn2624OdGY",
@@ -255,6 +236,261 @@
     } catch(e) { /* save failed silently — next flip will try again */ }
   }
 
+  // ---------- 3D Coin setup ----------
+  const canvas = document.getElementById('coinCanvas');
+  const wrap = document.querySelector('.coin-3d-wrap');
+
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.NoToneMapping;
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
+  camera.position.set(0, 0.9, 4.6);
+  camera.lookAt(0, 0, 0);
+
+  function resizeRenderer(){
+    const size = wrap.clientWidth || 220;
+    renderer.setSize(size, size, false);
+    camera.aspect = 1;
+    camera.updateProjectionMatrix();
+  }
+  resizeRenderer();
+  window.addEventListener('resize', resizeRenderer);
+
+  scene.add(new THREE.AmbientLight(0xfff3d6, 0.75));
+  const keyLight = new THREE.DirectionalLight(0xffe9a8, 1.1);
+  keyLight.position.set(2, 3, 4);
+  scene.add(keyLight);
+  const fillLight = new THREE.DirectionalLight(0x8fd9c4, 0.25);
+  fillLight.position.set(-3, -1, 2);
+  scene.add(fillLight);
+
+  // ---------- Coin face artwork (drawn entirely in code — no image files needed) ----------
+  function drawStar(ctx, cx, cy, outerR, innerR, points, rot){
+    ctx.beginPath();
+    for (let i = 0; i < points * 2; i++){
+      const r = i % 2 === 0 ? outerR : innerR;
+      const a = rot + (Math.PI * i) / points;
+      const x = cx + r * Math.sin(a);
+      const y = cy - r * Math.cos(a);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // Places text along a circular arc, centered at the top (angle 0 = 12 o'clock).
+  function drawArcText(ctx, str, cx, cy, radius, angle){
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(-angle / 2);
+    ctx.rotate(-(1 / str.length) * angle / 2);
+    for (let i = 0; i < str.length; i++){
+      ctx.rotate((1 / str.length) * angle);
+      ctx.save();
+      ctx.translate(0, -radius);
+      ctx.fillText(str[i], 0, 0);
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+
+  function drawLaurel(ctx, cx, cy, radius, leafCount){
+    for (let side = -1; side <= 1; side += 2){
+      for (let i = 0; i < leafCount; i++){
+        const t = i / (leafCount - 1);
+        const angle = Math.PI / 2 + side * t * (Math.PI * 0.4);
+        const x = cx + Math.cos(angle) * radius;
+        const y = cy + Math.sin(angle) * radius;
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle - side * Math.PI / 2);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 11, 5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+  }
+
+  function drawTriangleStack(ctx, cx, cy, ringRadius, sideSign){
+    ctx.save();
+    for (let i = 0; i < 3; i++){
+      const angle = sideSign * 46 * Math.PI / 180;
+      const spacing = 26;
+      const baseX = cx + Math.sin(angle) * ringRadius;
+      const baseY = cy - Math.cos(angle) * ringRadius + (i - 1) * spacing;
+      ctx.beginPath();
+      ctx.moveTo(baseX, baseY - 9);
+      ctx.lineTo(baseX - 8, baseY + 7);
+      ctx.lineTo(baseX + 8, baseY + 7);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function makeCoinFaceTexture(bottomLabel){
+    const size = 512;
+    const c = document.createElement('canvas');
+    c.width = size; c.height = size;
+    const ctx = c.getContext('2d');
+    const cx = size / 2, cy = size / 2;
+
+    const outerR = size / 2 - 4;
+    const bodyGrad = ctx.createRadialGradient(cx - 60, cy - 70, 20, cx, cy, outerR);
+    bodyGrad.addColorStop(0, '#FFE9A8');
+    bodyGrad.addColorStop(0.5, '#F0C24B');
+    bodyGrad.addColorStop(1, '#B9821F');
+    ctx.fillStyle = bodyGrad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = '#5c4009';
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.arc(cx, cy, outerR - 4, 0, Math.PI * 2);
+    ctx.stroke();
+
+    const greenOuter = outerR * 0.86;
+    const greenInner = outerR * 0.78;
+    ctx.strokeStyle = '#0F4D3A';
+    ctx.lineWidth = greenOuter - greenInner;
+    ctx.beginPath();
+    ctx.arc(cx, cy, (greenOuter + greenInner) / 2, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.strokeStyle = '#7a5a12';
+    ctx.lineWidth = 3;
+    [greenOuter, greenInner].forEach(r => {
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.stroke();
+    });
+
+    const innerR = greenInner - 4;
+    const innerGrad = ctx.createRadialGradient(cx - 40, cy - 50, 10, cx, cy, innerR);
+    innerGrad.addColorStop(0, '#FFE9A8');
+    innerGrad.addColorStop(0.6, '#F0C24B');
+    innerGrad.addColorStop(1, '#C79429');
+    ctx.fillStyle = innerGrad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, innerR, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#0F4D3A';
+    drawTriangleStack(ctx, cx, cy, (greenOuter + greenInner) / 2, -1);
+    drawTriangleStack(ctx, cx, cy, (greenOuter + greenInner) / 2, 1);
+
+    ctx.fillStyle = '#3a2a06';
+    ctx.font = 'bold 34px Georgia, serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    drawArcText(ctx, 'NAIJA GAIN', cx, cy, outerR - 30, 1.6);
+
+    ctx.fillStyle = '#7a5a12';
+    drawStar(ctx, cx - outerR + 34, cy - 40, 8, 4, 5, 0);
+    drawStar(ctx, cx + outerR - 34, cy - 40, 8, 4, 5, 0);
+
+    ctx.fillStyle = '#3a2a06';
+    const starY = cy - innerR * 0.62;
+    [-1, 0, 1].forEach(i => drawStar(ctx, cx + i * 30, starY, 9, 4, 5, 0));
+
+    ctx.font = '900 190px Georgia, serif';
+    ctx.fillText('N', cx - 34, cy + 6);
+    ctx.font = '900 150px Georgia, serif';
+    ctx.fillText('G', cx + 46, cy + 30);
+
+    ctx.font = 'bold 30px Georgia, serif';
+    ctx.fillText(bottomLabel, cx, cy + innerR * 0.62);
+
+    ctx.fillStyle = '#7a5a12';
+    drawLaurel(ctx, cx, cy, innerR * 0.82, 7);
+    ctx.beginPath();
+    ctx.arc(cx, cy + innerR * 0.9, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    const tex = new THREE.CanvasTexture(c);
+    tex.needsUpdate = true;
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+  }
+
+  const headsTexture = makeCoinFaceTexture('NGAIN');
+  const tailsTexture = makeCoinFaceTexture('TAILS');
+
+  const coin = new THREE.Group();
+
+  // Edge (the coin's rim) — open-ended cylinder, no caps, so it can't
+  // interfere with the flat face textures.
+  const edgeGeometry = new THREE.CylinderGeometry(1, 1, 0.22, 56, 1, true);
+  edgeGeometry.rotateX(Math.PI / 2); // axis now runs along Z, matching the faces below
+  const sideMaterial = new THREE.MeshStandardMaterial({ color: 0xD9A02B, metalness: 0.65, roughness: 0.35 });
+  const edge = new THREE.Mesh(edgeGeometry, sideMaterial);
+  coin.add(edge);
+
+  // Front face (heads) — a flat disc facing the camera at rest (+Z).
+  // MeshBasicMaterial ignores scene lighting, so the artwork shows at full
+  // brightness instead of being dimmed.
+  const headsMaterial = new THREE.MeshBasicMaterial({ map: headsTexture, side: THREE.DoubleSide });
+  const frontDisc = new THREE.Mesh(new THREE.CircleGeometry(1, 56), headsMaterial);
+  frontDisc.position.z = 0.11;
+  coin.add(frontDisc);
+
+  // Back face (tails) — same disc, mounted facing the other way. When the
+  // coin flips 180°, this rotates around to face the camera right-side up.
+  const tailsMaterial = new THREE.MeshBasicMaterial({ map: tailsTexture, side: THREE.DoubleSide });
+  const backDisc = new THREE.Mesh(new THREE.CircleGeometry(1, 56), tailsMaterial);
+  backDisc.position.z = -0.11;
+  backDisc.rotation.y = Math.PI;
+  coin.add(backDisc);
+
+  scene.add(coin);
+
+  let idleTime = 0;
+  let flipAnim = null; // { startTime, duration, fromX, toX }
+
+  function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
+
+  function renderLoop(now){
+    if (flipAnim) {
+      const elapsed = now - flipAnim.startTime;
+      const t = Math.min(elapsed / flipAnim.duration, 1);
+      const eased = easeOutCubic(t);
+      coin.rotation.x = flipAnim.fromX + (flipAnim.toX - flipAnim.fromX) * eased;
+      if (t >= 1) {
+        const finished = flipAnim;
+        flipAnim = null;
+        if (finished.onDone) finished.onDone();
+      }
+    } else {
+      idleTime += 0.008;
+      coin.rotation.x = Math.sin(idleTime) * 0.06; // gentle idle wobble
+      coin.position.y = Math.sin(idleTime * 1.3) * 0.05;
+    }
+    renderer.render(scene, camera);
+    requestAnimationFrame(renderLoop);
+  }
+  requestAnimationFrame(renderLoop);
+
+  // outcome: "heads" or "tails". Always resets and spins fresh each flip.
+  function flipCoinTo(outcome, onDone){
+    const extraSpins = 4 + Math.floor(Math.random() * 3); // 4–6 full spins for flair
+    const landing = extraSpins * Math.PI * 2 + (outcome === 'tails' ? Math.PI : 0);
+    coin.rotation.x = 0;
+    flipAnim = {
+      startTime: performance.now(),
+      duration: 1300,
+      fromX: 0,
+      toX: landing,
+      onDone: onDone
+    };
+  }
+
+  // ---------- Game state ----------
   let coinBalance = 0;
   let selectedSide = null;
   let selectedStake = null;
@@ -262,11 +498,10 @@
 
   const balanceText = document.getElementById('balanceText');
   const syncNote = document.getElementById('syncNote');
-  const coinFace = document.getElementById('coinFace');
-  const coinCaption = document.getElementById('coinCaption');
   const sidePicker = document.getElementById('sidePicker');
   const stakePicker = document.getElementById('stakePicker');
-  const customStake = document.getElementById('customStake');
+  const customStakeBtn = document.getElementById('customStakeBtn');
+  const customStakeInput = document.getElementById('customStakeInput');
   const flipBtn = document.getElementById('flipBtn');
   const stakeNote = document.getElementById('stakeNote');
   const resultOverlay = document.getElementById('resultOverlay');
@@ -275,16 +510,14 @@
   const resultSub = document.getElementById('resultSub');
   const resultClose = document.getElementById('resultClose');
 
-  function setCoinFace(side){
-    coinFace.textContent = side === "heads" ? "H" : "T";
-    coinCaption.textContent = side === "heads" ? "HEADS" : "TAILS";
-    coinFace.classList.toggle('side-tails', side === "tails");
-  }
-
   function updateHUD(){
     balanceText.textContent = coinBalance + " coins";
 
     document.querySelectorAll('.stake-btn').forEach(btn => {
+      if (btn.dataset.stake === 'custom') {
+        btn.disabled = coinBalance < 1;
+        return;
+      }
       const amt = parseInt(btn.dataset.stake, 10);
       btn.disabled = amt > coinBalance;
       if (amt > coinBalance && btn.classList.contains('selected')) {
@@ -292,17 +525,11 @@
         selectedStake = null;
       }
     });
-    customStake.max = coinBalance;
 
-    if (coinBalance < 1) {
-      stakeNote.textContent = "You need coins to play — go earn some on Spin or Dice.";
+    if (coinBalance < 5) {
+      stakeNote.textContent = "You need at least 5 coins to play — go earn some on Spin or Dice.";
     } else {
-      const rawCustom = parseInt(customStake.value, 10);
-      if (customStake.value && !isNaN(rawCustom) && rawCustom > coinBalance) {
-        stakeNote.textContent = "You only have " + coinBalance + " coins — lower your stake.";
-      } else {
-        stakeNote.textContent = "Winning doubles your stake. Losing forfeits it.";
-      }
+      stakeNote.textContent = "Winning doubles your stake. Losing forfeits it.";
     }
 
     flipBtn.disabled = flipping || selectedSide === null || selectedStake === null || selectedStake > coinBalance;
@@ -321,59 +548,43 @@
   }
 
   sidePicker.addEventListener('click', (e) => {
-    const btn = e.target.closest('.side-btn');
-    if (!btn || flipping) return;
-    selectedSide = btn.dataset.side;
-    document.querySelectorAll('.side-btn').forEach(b => b.classList.remove('selected'));
-    btn.classList.add('selected');
-    updateHUD();
-  });
-
-  stakePicker.addEventListener('click', (e) => {
     const btn = e.target.closest('.stake-btn');
     if (!btn || flipping || btn.disabled) return;
-    selectedStake = parseInt(btn.dataset.stake, 10);
-    customStake.value = "";
+
     document.querySelectorAll('.stake-btn').forEach(b => b.classList.remove('selected'));
     btn.classList.add('selected');
+
+    if (btn.dataset.stake === 'custom') {
+      customStakeInput.style.display = 'block';
+      customStakeInput.max = coinBalance;
+      customStakeInput.focus();
+      selectedStake = null; // wait for a valid typed amount
+    } else {
+      customStakeInput.style.display = 'none';
+      selectedStake = parseInt(btn.dataset.stake, 10);
+    }
     updateHUD();
   });
 
-  customStake.addEventListener('input', () => {
-    if (flipping) return;
-    document.querySelectorAll('.stake-btn').forEach(b => b.classList.remove('selected'));
-
-    const raw = parseInt(customStake.value, 10);
-    if (!customStake.value || isNaN(raw) || raw < 1) {
+  customStakeInput.addEventListener('input', () => {
+    let val = parseInt(customStakeInput.value, 10);
+    if (isNaN(val) || val < 1) {
       selectedStake = null;
-    } else if (raw > coinBalance) {
-      selectedStake = null; // too high — leave button disabled until they lower it
     } else {
-      selectedStake = raw;
+      if (val > coinBalance) val = coinBalance;
+      customStakeInput.value = val;
+      selectedStake = val;
     }
-    updateHUD();
+    flipBtn.disabled = flipping || selectedSide === null || selectedStake === null;
   });
 
   function flip(){
     if (flipping || selectedSide === null || selectedStake === null || selectedStake > coinBalance) return;
     flipping = true;
     flipBtn.disabled = true;
-    coinFace.classList.add('flipping');
 
-    let ticks = 0;
-    const maxTicks = 12;
-    const interval = setInterval(() => {
-      coinFace.textContent = Math.random() < 0.5 ? "H" : "T";
-      coinFace.classList.toggle('side-tails', coinFace.textContent === "T");
-      ticks++;
-      if (ticks >= maxTicks) {
-        clearInterval(interval);
-        const outcome = Math.random() < 0.5 ? "heads" : "tails";
-        setCoinFace(outcome);
-        coinFace.classList.remove('flipping');
-        onFlipComplete(outcome);
-      }
-    }, 90);
+    const outcome = Math.random() < 0.5 ? "heads" : "tails";
+    flipCoinTo(outcome, () => onFlipComplete(outcome));
   }
 
   async function onFlipComplete(outcome){
@@ -394,8 +605,9 @@
     await dbSave({ coinBalance: coinBalance });
     flipping = false;
     selectedStake = null;
-    customStake.value = "";
     document.querySelectorAll('.stake-btn').forEach(b => b.classList.remove('selected'));
+    customStakeInput.style.display = 'none';
+    customStakeInput.value = '';
     updateHUD();
     resultOverlay.classList.add('show');
   }
