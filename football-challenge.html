@@ -65,26 +65,45 @@ body{margin:0;background:linear-gradient(160deg,#084a38,#052d24 75%);color:var(-
 
 <script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import{getDatabase,ref,get,set}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import{getDatabase,ref,get,onValue,runTransaction}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 const firebaseConfig={apiKey:"AIzaSyCmT04ri3vMD0O2rxelhVvF8cn2624OdGY",authDomain:"naija-gain.firebaseapp.com",databaseURL:"https://naija-gain-default-rtdb.europe-west1.firebasedatabase.app",projectId:"naija-gain",storageBucket:"naija-gain.firebasestorage.app",messagingSenderId:"384942407595",appId:"1:384942407595:web:eaa6efdb65926fd378dcee"};
 const app=initializeApp(firebaseConfig),db=getDatabase(app),tg=window.Telegram?.WebApp||null;if(tg?.ready){try{tg.ready();tg.expand()}catch(e){}}
 function pid(){if(tg?.initDataUnsafe?.user?.id)return"tg_"+tg.initDataUnsafe.user.id;let x=localStorage.getItem("guestId");if(!x){x="guest_"+Math.random().toString(36).slice(2,10);localStorage.setItem("guestId",x)}return x}
-const player=ref(db,"players/"+pid());let coins=0;
+const player=ref(db,"players/"+pid());let coins=0,playerLoaded=false;
+function renderBalance(d){coins=Number(d?.coinBalance||0);balance.textContent=coins+" coins"}
 async function load(){try{
-  let s=await get(player),d=s.exists()?s.val():{};
-  coins=Number(d.coinBalance||0);
-  // One-time migration: this game used to save under "coins"/"balance"
-  // instead of the shared "coinBalance" field. Fold any stray amount in now.
+  const s=await get(player),d=s.exists()?s.val():{};
   const stray=Number(d.coins||0)+Number(d.balance||0);
-  if(stray>0){coins+=stray;const merged={...d,coinBalance:coins};delete merged.coins;delete merged.balance;await set(player,merged)}
-  balance.textContent=coins+" coins";sync.textContent="Progress saved to your account"
+  if(stray>0){
+    await runTransaction(player,current=>{
+      current=current||{};
+      const legacy=Number(current.coins||0)+Number(current.balance||0);
+      if(!legacy)return current;
+      const merged={...current,coinBalance:Number(current.coinBalance||0)+legacy};
+      delete merged.coins;delete merged.balance;
+      return merged;
+    });
+  }
+  playerLoaded=true;
+  sync.textContent="Progress saved to your account";
 }catch(e){sync.textContent="Playing offline"}}
-async function save(){try{let s=await get(player),d=s.exists()?s.val():{};await set(player,{...d,coinBalance:coins,lastPlayed:new Date().toISOString().slice(0,10)})}catch(e){}}
+onValue(player,s=>{renderBalance(s.val()||{});if(s.exists())sync.textContent="Progress saved to your account"});
+async function awardReward(reward){
+  if(!reward)return true;
+  try{
+    const result=await runTransaction(player,current=>{
+      current=current||{};
+      return {...current,coinBalance:Number(current.coinBalance||0)+reward,lastPlayed:new Date().toISOString().slice(0,10)};
+    });
+    if(result.committed){renderBalance(result.snapshot.val()||{});return true}
+  }catch(e){}
+  return false;
+}
 const ball=document.getElementById("ball"),keeper=document.getElementById("keeper"),goalsEl=document.getElementById("goals"),shotsEl=document.getElementById("shots"),streakEl=document.getElementById("streak"),message=document.getElementById("message"),instructions=document.getElementById("instructions"),start=document.getElementById("start"),balance=document.getElementById("balance"),sync=document.getElementById("sync");
 let active=false,goals=0,shots=5,streak=0,locked=false;
 function update(){goalsEl.textContent=goals;shotsEl.textContent=shots;streakEl.textContent=streak}
 function resetBall(){ball.style.left="50%";ball.style.bottom="112px";ball.style.transform="translateX(-50%) rotate(0deg)"}
-function begin(){active=true;goals=0;shots=5;streak=0;locked=false;update();start.disabled=true;start.textContent="Shootout in progress";message.textContent="Pick a corner.";instructions.textContent="Choose where to shoot";resetBall()}
+function begin(){if(!playerLoaded)return;active=true;goals=0;shots=5;streak=0;locked=false;update();start.disabled=true;start.textContent="Shootout in progress";message.textContent="Pick a corner.";instructions.textContent="Choose where to shoot";resetBall()}
 function shoot(dir){
  if(!active||locked||shots<=0)return;locked=true;instructions.textContent="Shot taken!";
  const keeperMove=["left","center","right"][Math.floor(Math.random()*3)];
@@ -105,7 +124,10 @@ function shoot(dir){
 async function finish(){
  active=false;start.disabled=false;start.textContent="Play Again";
  const reward=goals>=5?35:goals>=4?25:goals>=3?15:0;
- if(reward){coins+=reward;balance.textContent=coins+" coins";await save()}
+ if(reward){
+   const synced=await awardReward(reward);
+   if(!synced){message.textContent="Reward could not sync. Please try again.";sync.textContent="Reward not synced"}
+ }
  document.getElementById("medal").textContent=goals>=4?"🏆":"⚽";
  document.getElementById("modalTitle").textContent=goals>=3?"Great shootout!":"Keep practising";
  document.getElementById("modalText").textContent=`You scored ${goals} of 5 penalties.${reward?` You earned +${reward} coins.`:" Score 3 or more next time to earn coins."}`;
