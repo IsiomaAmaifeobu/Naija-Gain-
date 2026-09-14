@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Naija Gain — Target Challenge</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 :root{--bg:#052f25;--panel:#0b4b3a;--panel2:#0e5b45;--gold:#f7c84a;--gold2:#dfaa22;--cream:#fff8df;--muted:#b9d4ca;--line:rgba(247,200,74,.22)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -132,7 +133,6 @@ async function finish(){
  document.getElementById("overlay").classList.add("show");
 }
 start.onclick=begin;document.getElementById("close").onclick=()=>document.getElementById("overlay").classList.remove("show");
-load().catch(()=>{});
 </script>
 </body>
 </html>
