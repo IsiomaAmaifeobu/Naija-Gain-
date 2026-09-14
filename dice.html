@@ -123,7 +123,7 @@ button{font:inherit}
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+  import { getDatabase, ref, onValue, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCmT04ri3vMD0O2rxelhVvF8cn2624OdGY",
@@ -155,85 +155,11 @@ button{font:inherit}
   const playerId = getPlayerId();
   const playerRef = ref(db, 'players/' + playerId);
 
-  function withTimeout(promise, fallbackValue, ms = 4000){
-    return Promise.race([
-      promise,
-      new Promise((resolve) => setTimeout(() => resolve(fallbackValue), ms))
-    ]);
-  }
-
-  async function dbLoad(){
-    try {
-      const snapshot = await withTimeout(get(playerRef), null, 4000);
-      if (snapshot && snapshot.exists && snapshot.exists()) return snapshot.val();
-      return null;
-    } catch(e) { return null; }
-  }
-
-  async function dbSave(patch){
-    try {
-      // Merge with whatever's already there so we never wipe out the wheel's fields
-      const current = await dbLoad();
-      const merged = Object.assign({}, current || {}, patch);
-      await withTimeout(set(playerRef, merged), undefined, 4000);
-    } catch(e) { /* save failed silently — next roll will try again */ }
-  }
+  let playerReady = false;
 
   function todayStr(){
     const d = new Date();
     return d.getFullYear() + "-" + (d.getMonth()+1) + "-" + d.getDate();
-  }
-
-  let coinBalance = 0;
-  let rollsLeft = 3;
-  let selectedNum = null;
-  let rolling = false;
-
-  const balanceText = document.getElementById('balanceText');
-  const syncNote = document.getElementById('syncNote');
-    const dieCube = document.getElementById('dieCube');
-  const picker = document.getElementById('picker');
-  const rollBtn = document.getElementById('rollBtn');
-  const rollsLeftEl = document.getElementById('rollsLeft');
-  const resultOverlay = document.getElementById('resultOverlay');
-  const resultTitle = document.getElementById('resultTitle');
-  const resultSub = document.getElementById('resultSub');
-  const resultClose = document.getElementById('resultClose');
-
-  function updateHUD(){
-    balanceText.textContent = coinBalance + " coins";
-    rollsLeftEl.textContent = rollsLeft > 0
-      ? rollsLeft + " free roll" + (rollsLeft===1?"":"s") + " left today"
-      : "No free rolls left — come back tomorrow";
-    rollBtn.disabled = rollsLeft <= 0 || rolling || selectedNum === null;
-  }
-
-  async function loadProgress(){
-    try {
-      const data = await dbLoad();
-      coinBalance = (data && typeof data.coinBalance === 'number') ? data.coinBalance : 0;
-
-      if (data && data.lastDiceDate === todayStr() && typeof data.diceRollsLeft === 'number') {
-        rollsLeft = data.diceRollsLeft;
-      } else {
-        rollsLeft = 3; // new day, reset rolls
-      }
-
-      syncNote.textContent = "Progress saved to your account — same on every device";
-    } catch(e) {
-      coinBalance = 0;
-      rollsLeft = 3;
-      syncNote.textContent = "Couldn't load saved progress — starting fresh";
-    }
-    updateHUD();
-  }
-
-  async function saveProgress(){
-    await dbSave({
-      coinBalance: coinBalance,
-      diceRollsLeft: rollsLeft,
-      lastDiceDate: todayStr()
-    });
   }
 
   picker.addEventListener('click', (e) => {
@@ -246,7 +172,7 @@ button{font:inherit}
   });
 
   function roll(){
-    if (rolling || rollsLeft <= 0 || selectedNum === null) return;
+    if (!playerReady || rolling || rollsLeft <= 0 || selectedNum === null) return;
     rolling = true;
     rollBtn.disabled = true;
     dieCube.classList.add('rolling');
@@ -270,27 +196,62 @@ button{font:inherit}
   }
 
   async function onRollComplete(finalRoll){
-    rollsLeft -= 1;
-    const diff = Math.abs(finalRoll - selectedNum);
+    const picked = selectedNum;
+    const diff = Math.abs(finalRoll - picked);
+    const reward = diff === 0 ? 30 : (diff === 1 ? 5 : 0);
 
-    if (diff === 0) {
-      coinBalance += 30;
-      document.getElementById('resultMark').textContent = finalRoll;
-      resultTitle.textContent = "Exact match! +30 coins";
-      resultSub.textContent = "Rolled " + finalRoll + " — balance: " + coinBalance + " coins";
-    } else if (diff === 1) {
-      coinBalance += 5;
-      document.getElementById('resultMark').textContent = finalRoll;
-      resultTitle.textContent = "So close! +5 coins";
-      resultSub.textContent = "Rolled " + finalRoll + ", you picked " + selectedNum;
-    } else {
-      document.getElementById('resultMark').textContent = finalRoll;
-      resultTitle.textContent = "No match this time";
-      resultSub.textContent = "Rolled " + finalRoll + ", you picked " + selectedNum;
+    // Atomically consume one daily roll and apply the reward. This prevents
+    // two tabs/devices from spending the same roll or double-crediting coins.
+    let committed = false;
+    try {
+      const result = await runTransaction(playerRef, (current) => {
+        current = current || {};
+        const today = todayStr();
+        const currentRolls = current.lastDiceDate === today && typeof current.diceRollsLeft === 'number'
+          ? Math.max(0, current.diceRollsLeft)
+          : 3;
+
+        if (currentRolls <= 0) return;
+
+        return {
+          ...current,
+          coinBalance: Number(current.coinBalance || 0) + reward,
+          diceRollsLeft: currentRolls - 1,
+          lastDiceDate: today,
+          lastDiceRoll: finalRoll,
+          lastDicePick: picked,
+          lastDiceReward: reward
+        };
+      });
+      committed = result.committed;
+    } catch(e) {
+      committed = false;
     }
 
-    await saveProgress();
     rolling = false;
+
+    if (!committed) {
+      syncNote.textContent = "Roll could not be saved — please try again";
+      resultTitle.textContent = "Roll not saved";
+      resultSub.textContent = "Your account was not changed. Check your connection and try again.";
+      document.getElementById('resultMark').textContent = finalRoll;
+      updateHUD();
+      resultOverlay.classList.add('show');
+      return;
+    }
+
+    // onValue updates the authoritative balance/roll count.
+    if (reward === 30) {
+      resultTitle.textContent = "Exact match! +30 coins";
+      resultSub.textContent = "Rolled " + finalRoll + " — your reward has been saved.";
+    } else if (reward === 5) {
+      resultTitle.textContent = "So close! +5 coins";
+      resultSub.textContent = "Rolled " + finalRoll + ", you picked " + picked;
+    } else {
+      resultTitle.textContent = "No match this time";
+      resultSub.textContent = "Rolled " + finalRoll + ", you picked " + picked;
+    }
+    document.getElementById('resultMark').textContent = finalRoll;
     updateHUD();
     resultOverlay.classList.add('show');
   }
