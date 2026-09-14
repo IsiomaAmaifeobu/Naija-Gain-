@@ -122,6 +122,7 @@ let data={};
 let spinning=false;
 let angle=0;
 let spins=0,won=0,best=0,dailySpins=0,today="";
+let loaded=false;
 
 function localDate(){
   const d=new Date();
@@ -146,14 +147,21 @@ function updateUI(){
 
 async function load(){
   try{
-    const snap=await db.ref("players/"+player).once("value");
-    data=snap.val()||{};
     today=localDate();
-    if(data.lastSpinDate!==today){dailySpins=0;}else{dailySpins=Number(data.dailySpinCount||0);}
-    spins=Number(data.spinCount||0);
-    won=Number(data.spinWon||0);
-    best=Number(data.spinBest||0);
-    updateUI();
+    const ref=db.ref("players/"+player);
+    ref.on("value",snap=>{
+      data=snap.val()||{};
+      const currentDate=localDate();
+      today=currentDate;
+      dailySpins=data.lastSpinDate===currentDate ? Number(data.dailySpinCount||0) : 0;
+      spins=Number(data.spinCount||0);
+      won=Number(data.spinWon||0);
+      best=Number(data.spinBest||0);
+      loaded=true;
+      updateUI();
+    },()=>{
+      document.getElementById("msg").textContent="Could not load your balance.";
+    });
   }catch(e){document.getElementById("msg").textContent="Could not load your balance.";}
 }
 
@@ -184,7 +192,7 @@ async function saveReward(reward){
 }
 
 function spin(){
-  if(spinning || dailySpins>=DAILY_LIMIT) return;
+  if(!loaded || spinning || dailySpins>=DAILY_LIMIT) return;
   spinning=true;
   const btn=document.getElementById("spinBtn");
   btn.disabled=true;
