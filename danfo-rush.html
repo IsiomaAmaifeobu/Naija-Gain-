@@ -65,7 +65,7 @@ body{min-height:100vh;padding:env(safe-area-inset-top) 14px calc(22px + env(safe
 <div class="result" id="resultOverlay"><div class="result-card"><div class="result-icon"></div><div class="result-title" id="resultTitle">Ride complete</div><div class="result-sub" id="resultSub"></div><button class="result-close" id="resultClose">Continue</button></div></div>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+  import { getDatabase, ref, onValue, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCmT04ri3vMD0O2rxelhVvF8cn2624OdGY",
@@ -104,20 +104,35 @@ body{min-height:100vh;padding:env(safe-area-inset-top) 14px calc(22px + env(safe
     ]);
   }
 
-  async function dbLoad(){
-    try {
-      const snapshot = await withTimeout(get(playerRef), null, 4000);
-      if (snapshot && snapshot.exists && snapshot.exists()) return snapshot.val();
-      return null;
-    } catch(e) { return null; }
+  let playerLoaded = false;
+  let balanceSyncReady = false;
+
+  function startBalanceSync(){
+    onValue(playerRef, (snapshot) => {
+      const data = snapshot.val() || {};
+      coinBalance = Number.isFinite(Number(data.coinBalance)) ? Number(data.coinBalance) : 0;
+      playerLoaded = true;
+      balanceSyncReady = true;
+      syncNote.textContent = "Progress saved to your account — same on every device";
+      updateHUD();
+    }, () => {
+      playerLoaded = true;
+      syncNote.textContent = "Couldn't sync saved progress — check your connection";
+      updateHUD();
+    });
   }
 
-  async function dbSave(patch){
-    try {
-      const current = await dbLoad();
-      const merged = Object.assign({}, current || {}, patch);
-      await withTimeout(set(playerRef, merged), undefined, 4000);
-    } catch(e) { /* save failed silently — balance will resync next load */ }
+  async function changeBalance(delta){
+    const result = await runTransaction(playerRef, (current) => {
+      current = current || {};
+      const currentBalance = Number(current.coinBalance || 0);
+      const nextBalance = currentBalance + Number(delta);
+      if (!Number.isFinite(nextBalance) || nextBalance < 0) return;
+      return { ...current, coinBalance: Math.floor(nextBalance) };
+    });
+    if (!result.committed) return null;
+    const data = result.snapshot.val() || {};
+    return Number(data.coinBalance || 0);
   }
 
   let coinBalance = 0;
@@ -259,19 +274,12 @@ body{min-height:100vh;padding:env(safe-area-inset-top) 14px calc(22px + env(safe
       }
     }
 
-    actionBtn.disabled = !roundActive && (selectedStake === null || selectedStake > coinBalance);
+    actionBtn.disabled = !playerLoaded || (!roundActive && (selectedStake === null || selectedStake > coinBalance));
   }
 
   async function loadProgress(){
-    try {
-      const data = await dbLoad();
-      coinBalance = (data && typeof data.coinBalance === 'number') ? data.coinBalance : 0;
-      syncNote.textContent = "Progress saved to your account — same on every device";
-    } catch(e) {
-      coinBalance = 0;
-      syncNote.textContent = "Couldn't load saved progress — starting fresh";
-    }
     updateHUD();
+    startBalanceSync();
   }
 
   stakePicker.addEventListener('click', (e) => {
@@ -310,11 +318,19 @@ body{min-height:100vh;padding:env(safe-area-inset-top) 14px calc(22px + env(safe
   }
 
   async function placeBet(){
-    if (roundActive || selectedStake === null || selectedStake > coinBalance) return;
+    if (!playerLoaded || roundActive || selectedStake === null || selectedStake > coinBalance) return;
 
-    coinBalance -= selectedStake;
-    await dbSave({ coinBalance: coinBalance });
+    actionBtn.disabled = true;
+    const stake = selectedStake;
+    const newBalance = await changeBalance(-stake);
+    if (newBalance === null) {
+      statusLine.textContent = "Couldn't place bet — try again";
+      syncNote.textContent = "Bet was not deducted";
+      updateHUD();
+      return;
+    }
 
+    coinBalance = newBalance;
     roundActive = true;
     crashPoint = generateCrashPoint();
     roundStart = performance.now();
@@ -345,7 +361,8 @@ body{min-height:100vh;padding:env(safe-area-inset-top) 14px calc(22px + env(safe
     animFrame = requestAnimationFrame(tick);
   }
 
-  async function crash(){
+  function crash(){
+    if (!roundActive) return;
     if (animFrame) cancelAnimationFrame(animFrame);
     roundActive = false;
     stopEngineSound();
@@ -368,17 +385,39 @@ body{min-height:100vh;padding:env(safe-area-inset-top) 14px calc(22px + env(safe
   }
 
   async function cashOut(){
-    if (!roundActive) return;
+    if (!roundActive || selectedStake === null) return;
     if (animFrame) cancelAnimationFrame(animFrame);
 
     const m = currentMultiplier();
+    if (m >= crashPoint) {
+      crash();
+      return;
+    }
+
+    const stake = selectedStake;
+    const winnings = Math.floor(stake * m);
     roundActive = false;
     stopEngineSound();
     playHornSound();
-    const winnings = Math.floor(selectedStake * m);
-    coinBalance += winnings;
-    await dbSave({ coinBalance: coinBalance });
 
+    actionBtn.disabled = true;
+    const newBalance = await changeBalance(winnings);
+    if (newBalance === null) {
+      // Keep the round closed so a failed network operation cannot be paid twice.
+      statusLine.textContent = "Cash-out sync failed";
+      resultTitle.textContent = "Cash-out not synced";
+      resultSub.textContent = "Your winnings were not confirmed. Check your connection and refresh before playing again.";
+      actionBtn.textContent = "Place Bet";
+      actionBtn.classList.remove('cashout');
+      selectedStake = null;
+      customStake.value = "";
+      document.querySelectorAll('.stake-btn').forEach(b => b.classList.remove('selected'));
+      updateHUD();
+      resultOverlay.classList.add('show');
+      return;
+    }
+
+    coinBalance = newBalance;
     statusLine.textContent = "Cashed out!";
     actionBtn.textContent = "Place Bet";
     actionBtn.classList.remove('cashout');
@@ -408,10 +447,6 @@ body{min-height:100vh;padding:env(safe-area-inset-top) 14px calc(22px + env(safe
 
   loadProgress();
 </script>
-
-</body>
-      </html>
-    
 
 </body>
 </html>
