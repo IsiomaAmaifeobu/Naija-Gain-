@@ -82,14 +82,22 @@ body{padding:16px 14px 28px}.app{max-width:430px;margin:auto}
 
 <script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import{getDatabase,ref,get,set}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import{getDatabase,ref,onValue,runTransaction}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 const firebaseConfig={apiKey:"AIzaSyCmT04ri3vMD0O2rxelhVvF8cn2624OdGY",authDomain:"naija-gain.firebaseapp.com",databaseURL:"https://naija-gain-default-rtdb.europe-west1.firebasedatabase.app",projectId:"naija-gain",storageBucket:"naija-gain.firebasestorage.app",messagingSenderId:"384942407595",appId:"1:384942407595:web:eaa6efdb65926fd378dcee"};
 const app=initializeApp(firebaseConfig),db=getDatabase(app);
 const tg=window.Telegram?.WebApp||null;if(tg?.ready){try{tg.ready();tg.expand()}catch(e){}}
 function pid(){if(tg?.initDataUnsafe?.user?.id)return"tg_"+tg.initDataUnsafe.user.id;let x=localStorage.getItem("guestId");if(!x){x="guest_"+Math.random().toString(36).slice(2,10);localStorage.setItem("guestId",x)}return x}
-const player=ref(db,"players/"+pid());let coins=0;
-async function load(){try{const s=await get(player),d=s.exists()?s.val():{};coins=Number(d.coinBalance||0);document.getElementById("balance").textContent=coins+" coins";document.getElementById("sync").textContent="Progress saved to your account"}catch(e){document.getElementById("sync").textContent="Playing offline"}}
-async function save(){try{const s=await get(player),d=s.exists()?s.val():{};await set(player,{...d,coinBalance:coins,lastPlayed:new Date().toISOString().slice(0,10)})}catch(e){}}
+const player=ref(db,"players/"+pid());let coins=0,playerReady=false;
+function renderPlayer(d){coins=Number(d?.coinBalance||0);document.getElementById("balance").textContent=coins+" coins"}
+onValue(player,s=>{playerReady=true;renderPlayer(s.exists()?s.val():{});document.getElementById("sync").textContent="Progress saved to your account"},()=>{playerReady=true;document.getElementById("sync").textContent="Unable to sync progress"});
+async function awardReward(reward){
+ if(!reward||!playerReady)return false;
+ try{
+  const result=await runTransaction(player,current=>{current=current||{};return{...current,coinBalance:Number(current.coinBalance||0)+reward,lastPlayed:new Date().toISOString().slice(0,10)}});
+  if(result.committed){renderPlayer(result.snapshot.val()||{});return true}
+ }catch(e){}
+ return false;
+}
 
 const arena=document.getElementById("arena"),scoreEl=document.getElementById("score"),hitsEl=document.getElementById("hits"),timeEl=document.getElementById("time"),msg=document.getElementById("message"),start=document.getElementById("start");
 let score=0,hits=0,time=20,active=false,timer=null,spawn=null,count=0;
@@ -114,7 +122,10 @@ function begin(){
 async function finish(){
  if(!active)return;active=false;clearInterval(timer);clearTimeout(spawn);clearTarget();start.disabled=false;start.textContent="Play Again";
  const reward=score>=220?25:score>=140?15:score>=70?8:score>=20?3:0;
- if(reward){coins+=reward;document.getElementById("balance").textContent=coins+" coins";await save()}
+ if(reward){
+  const synced=await awardReward(reward);
+  if(!synced){document.getElementById("sync").textContent="Reward could not be synced";}
+ }
  document.getElementById("modalIcon").textContent=score>=140?"🏆":"🎯";
  document.getElementById("modalTitle").textContent=score>=140?"Great run!":"Challenge complete";
  document.getElementById("modalText").textContent=`You scored ${score} points with ${hits} hits.${reward?` You earned +${reward} coins.`:" Score higher next time to earn coins."}`;
