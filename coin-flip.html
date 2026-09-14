@@ -180,7 +180,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+  import { getDatabase, ref, get, onValue, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
   import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
   const firebaseConfig = {
@@ -228,13 +228,6 @@
     } catch(e) { return null; }
   }
 
-  async function dbSave(patch){
-    try {
-      const current = await dbLoad();
-      const merged = Object.assign({}, current || {}, patch);
-      await withTimeout(set(playerRef, merged), undefined, 4000);
-    } catch(e) { /* save failed silently — next flip will try again */ }
-  }
 
   // ---------- 3D Coin setup ----------
   const canvas = document.getElementById('coinCanvas');
@@ -495,6 +488,7 @@
   let selectedSide = null;
   let selectedStake = null;
   let flipping = false;
+  let progressLoaded = false;
 
   const balanceText = document.getElementById('balanceText');
   const syncNote = document.getElementById('syncNote');
@@ -532,22 +526,34 @@
       stakeNote.textContent = "Winning doubles your stake. Losing forfeits it.";
     }
 
-    flipBtn.disabled = flipping || selectedSide === null || selectedStake === null || selectedStake > coinBalance;
+    flipBtn.disabled = !progressLoaded || flipping || selectedSide === null || selectedStake === null || selectedStake > coinBalance;
   }
 
-  async function loadProgress(){
-    try {
-      const data = await dbLoad();
-      coinBalance = (data && typeof data.coinBalance === 'number') ? data.coinBalance : 0;
+  function startRealtimeSync(){
+    onValue(playerRef, (snapshot) => {
+      const data = snapshot.val() || {};
+      const nextBalance = Number(data.coinBalance);
+      coinBalance = Number.isFinite(nextBalance) && nextBalance >= 0 ? nextBalance : 0;
+      progressLoaded = true;
       syncNote.textContent = "Progress saved to your account — same on every device";
-    } catch(e) {
-      coinBalance = 0;
-      syncNote.textContent = "Couldn't load saved progress — starting fresh";
-    }
-    updateHUD();
+      updateHUD();
+    }, () => {
+      progressLoaded = false;
+      syncNote.textContent = "Couldn't sync saved progress";
+      updateHUD();
+    });
   }
 
   sidePicker.addEventListener('click', (e) => {
+    const btn = e.target.closest('.side-btn');
+    if (!btn || flipping || btn.disabled) return;
+    document.querySelectorAll('.side-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedSide = btn.dataset.side;
+    updateHUD();
+  });
+
+  stakePicker.addEventListener('click', (e) => {
     const btn = e.target.closest('.stake-btn');
     if (!btn || flipping || btn.disabled) return;
 
@@ -558,9 +564,10 @@
       customStakeInput.style.display = 'block';
       customStakeInput.max = coinBalance;
       customStakeInput.focus();
-      selectedStake = null; // wait for a valid typed amount
+      selectedStake = null;
     } else {
       customStakeInput.style.display = 'none';
+      customStakeInput.value = '';
       selectedStake = parseInt(btn.dataset.stake, 10);
     }
     updateHUD();
@@ -575,7 +582,7 @@
       customStakeInput.value = val;
       selectedStake = val;
     }
-    flipBtn.disabled = flipping || selectedSide === null || selectedStake === null;
+    flipBtn.disabled = !progressLoaded || flipping || selectedSide === null || selectedStake === null || selectedStake > coinBalance;
   });
 
   function flip(){
@@ -588,28 +595,58 @@
   }
 
   async function onFlipComplete(outcome){
+    const stake = Number(selectedStake);
     const won = outcome === selectedSide;
+    let committed = false;
+    let finalBalance = coinBalance;
 
-    if (won) {
-      coinBalance += selectedStake;
-      resultEmoji.textContent = "🏆";
-      resultTitle.textContent = "You won " + selectedStake + " coins!";
-      resultSub.textContent = "It landed on " + outcome + " — balance: " + coinBalance + " coins";
-    } else {
-      coinBalance -= selectedStake;
-      resultEmoji.textContent = "💔";
-      resultTitle.textContent = "Lost " + selectedStake + " coins";
-      resultSub.textContent = "It landed on " + outcome + " — balance: " + coinBalance + " coins";
+    try {
+      const result = await withTimeout(runTransaction(playerRef, (current) => {
+        current = current || {};
+        const currentBalance = Number(current.coinBalance);
+        const safeBalance = Number.isFinite(currentBalance) && currentBalance >= 0 ? currentBalance : 0;
+
+        // Re-check the balance inside the transaction so concurrent tabs cannot overspend.
+        if (!Number.isInteger(stake) || stake < 1 || safeBalance < stake) return;
+
+        const nextBalance = won ? safeBalance + stake : safeBalance - stake;
+        return { ...current, coinBalance: nextBalance, lastPlayed: new Date().toISOString().slice(0,10) };
+      }), null, 5000);
+
+      committed = !!(result && result.committed);
+      if (committed) {
+        const value = result.snapshot.val() || {};
+        finalBalance = Number(value.coinBalance) || 0;
+        coinBalance = finalBalance;
+
+        if (won) {
+          resultEmoji.textContent = "🏆";
+          resultTitle.textContent = "You won " + stake + " coins!";
+        } else {
+          resultEmoji.textContent = "💔";
+          resultTitle.textContent = "Lost " + stake + " coins";
+        }
+        resultSub.textContent = "It landed on " + outcome + " — balance: " + finalBalance + " coins";
+        resultOverlay.classList.add('show');
+      } else {
+        resultEmoji.textContent = "⚠️";
+        resultTitle.textContent = "Flip not completed";
+        resultSub.textContent = "Your balance changed before the flip was saved. No coins were deducted or awarded.";
+        resultOverlay.classList.add('show');
+      }
+    } catch(e) {
+      resultEmoji.textContent = "⚠️";
+      resultTitle.textContent = "Couldn't save flip";
+      resultSub.textContent = "Please check your connection. No balance change was confirmed.";
+      resultOverlay.classList.add('show');
+    } finally {
+      flipping = false;
+      selectedStake = null;
+      document.querySelectorAll('.stake-btn').forEach(b => b.classList.remove('selected'));
+      customStakeInput.style.display = 'none';
+      customStakeInput.value = '';
+      updateHUD();
     }
-
-    await dbSave({ coinBalance: coinBalance });
-    flipping = false;
-    selectedStake = null;
-    document.querySelectorAll('.stake-btn').forEach(b => b.classList.remove('selected'));
-    customStakeInput.style.display = 'none';
-    customStakeInput.value = '';
-    updateHUD();
-    resultOverlay.classList.add('show');
   }
 
   resultClose.addEventListener('click', () => {
@@ -619,7 +656,7 @@
 
   flipBtn.addEventListener('click', flip);
 
-  loadProgress();
+  startRealtimeSync();
 </script>
 
 </body>
