@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Naija Gain</title>
-<script src="https://telegram.org/js/telegram-web-app.js" defer></script>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src='//libtl.com/sdk.js' data-zone='11771755' data-sdk='show_11771755'></script>
@@ -185,6 +185,29 @@ playerRef.on("value", snapshot => {
   latestPlayerData=snapshot.val()||{};
   renderPlayer(latestPlayerData);
 });
+
+// One-time: some pages used to fail to detect Telegram and fell back to a
+// browser-only guest identity, so progress ended up split across two
+// accounts. Now that Telegram is detected reliably everywhere, fold any
+// balance left behind under that old guest identity into the real one.
+async function migrateGuestBalance(){
+  if(!tg?.initDataUnsafe?.user?.id) return; // only when we have a real Telegram identity
+  const guestId=localStorage.getItem("guestId");
+  if(!guestId) return; // nothing to migrate
+  const guestRef=db.ref("players/"+guestId);
+  try{
+    const snap=await guestRef.once("value");
+    const stray=Number((snap.val()||{}).coinBalance||0);
+    if(stray<=0) return;
+    await playerRef.transaction(current=>{
+      const next=current||{};
+      next.coinBalance=Number(next.coinBalance||0)+stray;
+      return next;
+    });
+    await guestRef.update({coinBalance:0});
+  }catch(e){ /* best-effort; safe to retry on next load */ }
+}
+migrateGuestBalance();
 
 async function load(){
   try{
