@@ -140,8 +140,24 @@ async function watchAd(index,reward,btn){
       note.textContent="Already up to date.";
       await load();return;
     }
-    const newBalance=Number(d.coinBalance||0)+reward;
-    await playerRef.update({coinBalance:newBalance,adsWatchedToday:watchedNow+1,lastAdDate:today});
+    let granted = false;
+    await playerRef.transaction(current => {
+      const next = current || {};
+      const currentWatched = next.lastAdDate === today ? Number(next.adsWatchedToday || 0) : 0;
+      // The transaction re-checks the daily slot on Firebase, so two tabs
+      // cannot both claim the same ad reward.
+      if (currentWatched !== index) return;
+      next.coinBalance = Number(next.coinBalance || 0) + reward;
+      next.adsWatchedToday = currentWatched + 1;
+      next.lastAdDate = today;
+      granted = true;
+      return next;
+    });
+    if (!granted) {
+      note.textContent="Already up to date.";
+      await load();
+      return;
+    }
     note.textContent=`+${reward} coins added! Keep going.`;
     await load();
   }catch(e){
@@ -150,17 +166,31 @@ async function watchAd(index,reward,btn){
   }
 }
 
+function renderPlayer(d){
+  const data=d||{};
+  const b=Number(data.coinBalance||0);
+  const r=Number(data.referralCount||0);
+  document.getElementById("topBalance").textContent=b.toLocaleString();
+  document.getElementById("walletBalance").textContent=b.toLocaleString();
+  document.getElementById("pbal").textContent=b.toLocaleString();
+  document.getElementById("refCount").textContent=r;
+  document.getElementById("pref").textContent=r;
+  document.getElementById("pid").textContent=playerId.length>16?playerId.slice(0,13)+"…":playerId;
+  document.getElementById("refLink").value="https://t.me/NaijaGain_bot?startapp="+playerId;
+  renderEarnTab(data);
+}
+
+let latestPlayerData={};
+playerRef.on("value", snapshot => {
+  latestPlayerData=snapshot.val()||{};
+  renderPlayer(latestPlayerData);
+});
+
 async function load(){
   try{
-    const s=await playerRef.once("value"),d=s.val()||{},b=Number(d.coinBalance||0),r=Number(d.referralCount||0);
-    document.getElementById("topBalance").textContent=b.toLocaleString();
-    document.getElementById("walletBalance").textContent=b.toLocaleString();
-    document.getElementById("pbal").textContent=b.toLocaleString();
-    document.getElementById("refCount").textContent=r;
-    document.getElementById("pref").textContent=r;
-    document.getElementById("pid").textContent=playerId.length>16?playerId.slice(0,13)+"…":playerId;
-    document.getElementById("refLink").value="https://t.me/NaijaGain_bot?startapp="+playerId;
-    renderEarnTab(d);
+    const s=await playerRef.once("value");
+    latestPlayerData=s.val()||{};
+    renderPlayer(latestPlayerData);
   }catch(e){}
 }
 document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>{document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));document.getElementById(b.dataset.page).classList.add("active");load()});
