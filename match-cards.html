@@ -106,7 +106,7 @@ body{padding:16px 14px 30px;overflow-x:hidden}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getDatabase, ref, onValue, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const firebaseConfig={
   apiKey:"AIzaSyCmT04ri3vMD0O2rxelhVvF8cn2624OdGY",
@@ -129,39 +129,50 @@ function playerId(){
 }
 const pRef=ref(db,"players/"+playerId());
 const balanceEl=document.getElementById("balanceText"),syncEl=document.getElementById("syncNote");
-let balance=0, data=null;
+let balance=0, data={};
 
-async function load(){
+// Keep this page subscribed to the same canonical balance used by the rest
+// of Naija Gain. The listener also means a reward earned elsewhere appears
+// here immediately without refreshing the page.
+onValue(pRef,(snapshot)=>{
+  data=snapshot.exists()?snapshot.val():{};
+  balance=Number(data.coinBalance||0);
+  balanceEl.textContent=balance+" coins";
+  syncEl.textContent="Progress saved to your account";
+},()=>{
+  syncEl.textContent="Unable to sync right now";
+});
+
+// Safely migrate any balance left by older versions. This is atomic, so two
+// open game pages cannot overwrite each other's balance during migration.
+async function migrateLegacyBalance(){
   try{
-    const s=await get(pRef);
-    data=s.exists()?s.val():{};
-    balance=Number(data.coinBalance||0);
+    await runTransaction(pRef,(current)=>{
+      current=current||{};
+      const stray=Number(current.coins||0)+Number(current.balance||0);
+      if(stray<=0)return current;
+      const next={...current,coinBalance:Number(current.coinBalance||0)+stray};
+      delete next.coins;
+      delete next.balance;
+      return next;
+    });
+  }catch(e){ /* listener remains active; retry is harmless on next load */ }
+}
 
-    // One-time migration: earlier versions of this game saved coins under
-    // "coins"/"balance" instead of the shared "coinBalance" field. Fold any
-    // stray amount in now so nothing already earned here is lost, and
-    // remove the old keys entirely (Firebase rules only allow known fields).
-    const stray=Number(data.coins||0)+Number(data.balance||0);
-    if(stray>0){
-      balance+=stray;
-      data={...data,coinBalance:balance};
-      delete data.coins;
-      delete data.balance;
-      await set(pRef,data);
-    }
-
-    balanceEl.textContent=balance+" coins";
-    syncEl.textContent="Progress saved to your account";
+async function awardReward(reward){
+  if(!Number.isFinite(reward)||reward<=0)return false;
+  try{
+    const result=await runTransaction(pRef,(current)=>{
+      current=current||{};
+      return {...current,coinBalance:Number(current.coinBalance||0)+reward,lastPlayed:new Date().toISOString().slice(0,10)};
+    });
+    return result.committed;
   }catch(e){
-    balance=0;balanceEl.textContent="0 coins";syncEl.textContent="Playing offline";
+    return false;
   }
 }
-async function save(patch){
-  try{
-    const s=await get(pRef), cur=s.exists()?s.val():{};
-    await set(pRef,{...cur,...patch});
-  }catch(e){}
-}
+
+migrateLegacyBalance();
 
 const icons=[
   {name:"star",svg:`<svg class="icon" viewBox="0 0 64 64"><path d="M32 7l7.2 16 17.3 1.7-13 11.4 3.8 17L32 44.2 16.7 53l3.8-17-13-11.4L24.8 23 32 7Z" fill="#f4c33d" stroke="#6d5110" stroke-width="2"/></svg>`},
@@ -220,10 +231,14 @@ async function finish(win){
   let reward=0;
   if(win){
     reward=Math.max(5,25-Math.max(0,moves-8)*2+Math.floor(time/5));
-    balance+=reward;
-    balanceEl.textContent=balance+" coins";
+    const credited=await awardReward(reward);
+    if(!credited){
+      document.getElementById("modalTitle").textContent="Reward not synced";
+      document.getElementById("modalText").textContent="Your board was completed, but the reward could not be saved. Please stay online and try again.";
+      document.getElementById("overlay").classList.add("show");
+      return;
+    }
     msg.textContent="Board complete!";
-    await save({coinBalance:balance,lastPlayed:new Date().toISOString().slice(0,10)});
     document.getElementById("modalTitle").textContent="Board complete!";
     document.getElementById("modalText").textContent=`You found all 8 pairs in ${moves} moves. +${reward} coins added to your balance.`;
   }else{
